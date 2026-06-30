@@ -24,4 +24,7 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p2_v0.stride .≈ (1e-3, 1e-3, 1e-3))
     @test all(p2_v0.origin .≈ (-2e-3, -2e-3, 1e-3))
     @test size(p2_v0.data) == (4, 4, 2, 96)
+
+    @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_extra.bin"))
+    @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_short.bin"))
 end

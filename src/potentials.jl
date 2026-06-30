@@ -46,7 +46,7 @@ function import_pillbox_v0_raw(filename)
         end
         databytes = read(fh)
         if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
-            error("Did not find the right number of samples")
+            throw(ArgumentError("Did not find the right number of samples"))
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
