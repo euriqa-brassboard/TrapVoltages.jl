@@ -37,7 +37,7 @@ jobs:
       - name: Disable multiprocess
         if: ${{ matrix.nproc == 0 }}
         run: echo "TRAP_VOLTAGES_NPROC=0" >> $GITHUB_ENV
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
