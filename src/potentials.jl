@@ -9,12 +9,10 @@ struct RawPotential
     nx::Int
     ny::Int
     nz::Int
-    vsets::Int
     xaxis::NTuple{3,Float64}
     yaxis::NTuple{3,Float64}
     stride::NTuple{3,Float64}
     origin::NTuple{3,Float64}
-    electrodemapping::Vector{Int}
     data::Array{Float64,4}
 end
 
@@ -39,15 +37,14 @@ function import_pillbox_v0_raw(filename)
         nx = Int(read(fh, Int32))
         ny = Int(read(fh, Int32))
         nz = Int(read(fh, Int32))
-        vsets = Int(read(fh, Int32))
+        read(fh, Int32) # vsets
         stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         # I have no idea what's stored in these
         read(fh, Int32)
         read(fh, Int32)
-        electrodemapping = Vector{Int}(undef, electrodes)
         for i in 1:electrodes
-            electrodemapping[i] = read(fh, Int32)
+            read(fh, Int32)
         end
         databytes = read(fh)
         if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
@@ -55,9 +52,8 @@ function import_pillbox_v0_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, vsets,
-                            (1000, 0, 0), (0, 1000, 0),
-                            stride, origin, electrodemapping, data)
+        return RawPotential(electrodes, nx, ny, nz, (1000, 0, 0), (0, 1000, 0),
+                            stride, origin, data)
     end
 end
 
@@ -83,7 +79,7 @@ function import_pillbox_v1_raw(filename)
         nx = Int(read(fh, Int32))
         ny = Int(read(fh, Int32))
         nz = Int(read(fh, Int32))
-        vsets = Int(read(fh, Int32))
+        read(fh, Int32) # vsets
         xaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
         yaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
         stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
@@ -91,9 +87,8 @@ function import_pillbox_v1_raw(filename)
         # I have no idea what's stored in these
         read(fh, Int32)
         read(fh, Int32)
-        electrodemapping = Vector{Int}(undef, electrodes)
         for i in 1:electrodes
-            electrodemapping[i] = read(fh, Int32)
+            read(fh, Int32)
         end
         databytes = read(fh)
         if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
@@ -101,8 +96,8 @@ function import_pillbox_v1_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, vsets, xaxis, yaxis,
-                            stride, origin, electrodemapping, data)
+        return RawPotential(electrodes, nx, ny, nz, xaxis, yaxis,
+                            stride, origin, data)
     end
 end
 
@@ -128,7 +123,7 @@ function import_pillbox_64_raw(filename)
         nx = Int(read(fh, Int64))
         ny = Int(read(fh, Int64))
         nz = Int(read(fh, Int64))
-        vsets = Int(read(fh, Int64))
+        read(fh, Int64) # vsets
         xaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
         yaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
         stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
@@ -136,9 +131,8 @@ function import_pillbox_64_raw(filename)
         # I have no idea what's stored in these
         read(fh, Int64)
         read(fh, Int64)
-        electrodemapping = Vector{Int}(undef, electrodes)
         for i in 1:electrodes
-            electrodemapping[i] = read(fh, Int64)
+            read(fh, Int64)
         end
         databytes = read(fh)
         if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
@@ -146,8 +140,8 @@ function import_pillbox_64_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, vsets, xaxis, yaxis,
-                            stride, origin, electrodemapping, data)
+        return RawPotential(electrodes, nx, ny, nz, xaxis, yaxis,
+                            stride, origin, data)
     end
 end
 
