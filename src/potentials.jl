@@ -2,7 +2,7 @@
 
 module Potentials
 
-import ..PolyFit, ..get_single
+import ..PolyFit, ..get_single, ..TrapDesc
 
 struct RawPotential
     electrodes::Int
@@ -160,41 +160,6 @@ for (name, i) in ((:x, 1), (:y, 2), (:z, 3))
     end
 end
 
-struct TrapDesc
-    ele_names::Vector{String}
-    ele_indices::Dict{String,Int}
-    function TrapDesc(ele_names)
-        ele_indices = Dict{String,Int}()
-        for (i, name) in enumerate(ele_names)
-            ele_indices[name] = i
-        end
-        return new(ele_names, ele_indices)
-    end
-end
-
-const _trap_px = TrapDesc(["GND"; "RF";
-                           "L" .* string.(0:9);
-                           "O" .* string.(0:1);
-                           "Q" .* string.(0:65);
-                           "S" .* string.(0:11);])
-const _trap_hoa = TrapDesc(["GND"; "RF";
-                            "G" .* string.(1:8);
-                            "L" .* string.(1:16);
-                            "Q" .* string.(1:40);
-                            "T" .* string.(1:6);
-                            "Y" .* string.(1:24);])
-
-function _get_trap(trap)
-    if trap isa TrapDesc
-        return trap
-    elseif trap == "phoenix" || trap == "peregrine"
-        return _trap_px
-    elseif trap == "hoa"
-        return _trap_hoa
-    end
-    throw(ArgumentError("Unknown trap name $(trap)"))
-end
-
 export Potential
 
 struct Potential
@@ -289,19 +254,19 @@ function _get_electrode_names(aliases, electrode_names, trap::TrapDesc)
 end
 
 function import_pillbox_v0(filename; aliases=nothing, electrode_names=nothing, trap)
-    trap = _get_trap(trap)
+    trap = TrapDesc(trap)
     return Potential(import_pillbox_v0_raw(filename),
                      _get_electrode_names(aliases, electrode_names, trap), trap)
 end
 
 function import_pillbox_v1(filename; aliases=nothing, electrode_names=nothing, trap)
-    trap = _get_trap(trap)
+    trap = TrapDesc(trap)
     return Potential(import_pillbox_v1_raw(filename),
                      _get_electrode_names(aliases, electrode_names, trap), trap)
 end
 
 function import_pillbox_64(filename; aliases=nothing, electrode_names=nothing, trap)
-    trap = _get_trap(trap)
+    trap = TrapDesc(trap)
     return Potential(import_pillbox_64_raw(filename),
                      _get_electrode_names(aliases, electrode_names, trap), trap)
 end
