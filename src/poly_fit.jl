@@ -2,6 +2,8 @@
 
 module PolyFit
 
+import ..gradient
+
 # N dimensional polynomial fitting
 """
     Fitter{N}
@@ -82,6 +84,87 @@ function (res::Result{N})(pos::Vararg{Any,N}) where N
         v += res.coefficient[iorder] * prod(pos.^order)
     end
     return v
+end
+
+# Gradient along dimension
+function gradient(res::Result{N}, dim, pos::Vararg{Any,N}) where N
+    sizes = res.orders .+ 1
+    lindices = LinearIndices(sizes)
+    cindices = CartesianIndices(sizes)
+    v = 0.0
+    for iorder in lindices
+        # Original polymomial orders along each dimensions
+        order = Tuple(cindices[iorder]) .- 1
+        factor = order[dim]
+        if factor == 0
+            continue
+        end
+        term = factor * res.coefficient[iorder]
+        @inbounds for i in 1:N
+            o = i == dim ? order[i] - 1 : order[i]
+            term *= pos[i]^o
+        end
+        v += term
+    end
+    return v
+end
+
+function order_index(orders::NTuple{N,Integer}, order::Vararg{Integer,N}) where N
+    return LinearIndices(orders .+ 1)[CartesianIndex(order .+ 1)]
+end
+
+function order_index(res::Result{N}, order::Vararg{Integer,N}) where N
+    return order_index(res.orders, order...)
+end
+
+function Base.:\(fitter::Fitter{N}, data::AbstractArray{T,N} where T) where N
+    return Result{N}(fitter.orders,
+                     (fitter.coefficient \ vec(data)) .* fitter.scales)
+end
+
+function Base.getindex(res::Result{N}, order::Vararg{Integer,N}) where N
+    return res.coefficient[order_index(res, order...)]
+end
+
+function Base.setindex!(res::Result{N}, val, order::Vararg{Integer,N}) where N
+    res.coefficient[order_index(res, order...)] = val
+    return
+end
+
+shifted_term(max_order, term_order, shift) =
+    shift^(max_order - term_order) * binomial(max_order, term_order)
+
+function shifted_coefficient(res::Result{N}, shift::NTuple{N},
+                             order::Vararg{Integer,N}) where N
+    v = 0.0
+    sizes = res.orders .+ 1
+    lindices = LinearIndices(sizes)
+    cindices = CartesianIndices(sizes)
+    for lidx in lindices
+        cidx = cindices[lidx]
+        term_order = Tuple(cidx) .- 1
+        if !all(term_order .>= order)
+            continue
+        end
+        v += prod(shifted_term.(term_order, order, shift)) * res.coefficient[lidx]
+    end
+    return v
+end
+
+# shift the solution to get the polynomial representing the same function
+# but with the origin shifted to `shift`.
+# `x` with a shift of `1` becomes `x + 1`.
+function shift(res::Result{N}, shift::NTuple{N}) where N
+    coefficient = similar(res.coefficient)
+    sizes = res.orders .+ 1
+    lindices = LinearIndices(sizes)
+    cindices = CartesianIndices(sizes)
+    for lidx in lindices
+        cidx = cindices[lidx]
+        order = Tuple(cidx) .- 1
+        coefficient[lidx] = shifted_coefficient(res, shift, order...)
+    end
+    return Result{N}(res.orders, coefficient)
 end
 
 end
