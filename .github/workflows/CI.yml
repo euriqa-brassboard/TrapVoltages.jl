@@ -33,7 +33,7 @@ jobs:
             arch: aarch64
             nproc: 0
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Disable multiprocess
         if: ${{ matrix.nproc == 0 }}
         run: echo "TRAP_VOLTAGES_NPROC=0" >> $GITHUB_ENV
