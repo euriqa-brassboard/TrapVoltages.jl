@@ -13,6 +13,7 @@ else
 end
 
 pmap(["poly_fit",
+      "potentials",
       "trap"]) do file
     println("Start testing $file")
     @eval module $(Symbol("Test_$(file)_mod"))
