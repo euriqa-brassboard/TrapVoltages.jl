@@ -2,3 +2,6 @@ name = "TrapVoltages"
 uuid = "c3eab58b-df5a-4bb0-a5d5-4505d29c1d03"
 version = "0.1.0"
 authors = ["Yichao Yu <yyc1992@gmail.com>"]
+
+[compat]
+julia = "1.10"
