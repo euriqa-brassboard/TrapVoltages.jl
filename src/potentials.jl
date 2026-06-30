@@ -9,8 +9,6 @@ struct RawPotential
     nx::Int
     ny::Int
     nz::Int
-    xaxis::NTuple{3,Float64}
-    yaxis::NTuple{3,Float64}
     stride::NTuple{3,Float64}
     origin::NTuple{3,Float64}
     data::Array{Float64,4}
@@ -52,8 +50,7 @@ function import_pillbox_v0_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, (1000, 0, 0), (0, 1000, 0),
-                            stride, origin, data)
+        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
     end
 end
 
@@ -80,8 +77,10 @@ function import_pillbox_v1_raw(filename)
         ny = Int(read(fh, Int32))
         nz = Int(read(fh, Int32))
         read(fh, Int32) # vsets
-        xaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
-        yaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
+        # xaxis, yaxis
+        for _ in 1:6
+            read(fh, Float64)
+        end
         stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         # I have no idea what's stored in these
@@ -96,8 +95,7 @@ function import_pillbox_v1_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, xaxis, yaxis,
-                            stride, origin, data)
+        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
     end
 end
 
@@ -124,8 +122,10 @@ function import_pillbox_64_raw(filename)
         ny = Int(read(fh, Int64))
         nz = Int(read(fh, Int64))
         read(fh, Int64) # vsets
-        xaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
-        yaxis = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64))
+        # xaxis, yaxis
+        for _ in 1:6
+            read(fh, Float64)
+        end
         stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
         # I have no idea what's stored in these
@@ -140,8 +140,7 @@ function import_pillbox_64_raw(filename)
         end
         data = Array{Float64}(undef, nz, ny, nx, electrodes)
         copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, xaxis, yaxis,
-                            stride, origin, data)
+        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
     end
 end
 
