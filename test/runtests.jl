@@ -12,7 +12,8 @@ else
     end
 end
 
-pmap(["poly_fit"]) do file
+pmap(["poly_fit",
+      "trap"]) do file
     println("Start testing $file")
     @eval module $(Symbol("Test_$(file)_mod"))
     include($(joinpath(@__DIR__, "$(file).jl")))
