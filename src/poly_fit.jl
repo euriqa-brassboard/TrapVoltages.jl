@@ -2,7 +2,7 @@
 
 module PolyFit
 
-import ..gradient
+import ..gradient, ..get_single
 
 # N dimensional polynomial fitting
 """
@@ -165,6 +165,68 @@ function shift(res::Result{N}, shift::NTuple{N}) where N
         coefficient[lidx] = shifted_coefficient(res, shift, order...)
     end
     return Result{N}(res.orders, coefficient)
+end
+
+struct FitCache{N,A<:AbstractArray{T,N} where T}
+    fitter::Fitter{N}
+    data::A
+    cache::Array{Result{N},N}
+end
+
+function FitCache(fitter::Fitter{N}, data::A) where (A<:AbstractArray{T,N} where T) where N
+    cache = Array{Result{N},N}(undef, size(data) .- fitter.sizes .+ 1)
+    return FitCache{N,A}(fitter, data, cache)
+end
+
+function get_internal(cache::FitCache{N}, idx::NTuple{N,Integer}) where N
+    if isassigned(cache.cache, idx...)
+        return cache.cache[idx...]
+    end
+    data = @view cache.data[((:).(idx, idx .+ cache.fitter.sizes .- 1))...]
+    res = cache.fitter \ data
+    cache.cache[idx...] = res
+    return res
+end
+
+# pos is in index unit
+function _best_fit_idx(ntotal, kernel_size, pos)
+    # for fit at `index`, the data covered is `index:(index + kernel_size - 1)`
+    # with the center at index `index + (kernel_size - 1) / 2`.
+    # Therefore, the ideal index to use for `pos` is `pos - (kernel_size - 1) / 2`
+    idx = round(Int, pos - (kernel_size - 1) / 2)
+    if idx <= 1
+        return 1
+    elseif idx >= ntotal - (kernel_size - 1)
+        return ntotal - (kernel_size - 1)
+    end
+    return idx
+end
+
+function Base.get(cache::FitCache{N}, pos::NTuple{N};
+                  fit_center=pos) where N
+    kernel_sizes = cache.fitter.sizes
+    idxs = _best_fit_idx.(size(cache.data), kernel_sizes, fit_center)
+    fit = get_internal(cache, idxs)
+    return shift(fit, pos .- (kernel_sizes .- 1) ./ 2 .- idxs)
+end
+
+function get_single(cache::FitCache{N}, pos::NTuple{N}, orders::NTuple{N};
+                    fit_center=pos) where N
+    kernel_sizes = cache.fitter.sizes
+    idxs = _best_fit_idx.(size(cache.data), kernel_sizes, fit_center)
+    fit = get_internal(cache, idxs)
+    return shifted_coefficient(fit, pos .- (kernel_sizes .- 1) ./ 2 .- idxs, orders...)
+end
+
+function gradient(cache::FitCache{N}, dim, pos::Vararg{Any,N}) where N
+    sizes = size(cache.data)
+    kernel_sizes = cache.fitter.sizes
+    idxs = _best_fit_idx.(sizes, kernel_sizes, pos)
+    fit = get_internal(cache, idxs)
+    # center of the fit in index: idx + (kernel_sizes .- 1) / 2
+    # position within fit: pos - idx - (kernel_sizes .- 1) / 2
+    pos = pos .- idxs .- (kernel_sizes .- 1) ./ 2
+    return gradient(fit, dim, pos...)
 end
 
 end
