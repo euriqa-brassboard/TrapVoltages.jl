@@ -19,7 +19,9 @@ struct Fitter{N}
     # center is the origin of the polynomial in index (1-based)
     function Fitter(orders::Vararg{Integer,N};
                     sizes=orders .+ 1, center=(sizes .+ 1) ./ 2) where N
-        @assert all(sizes .> orders)
+        if !all(sizes .> orders)
+            throw(ArgumentError("Sample size must be at least 1 larger than max fitting order"))
+        end
         nterms = prod(orders .+ 1)
         npoints = prod(sizes)
 
@@ -54,7 +56,9 @@ struct Result{N}
 end
 
 function assert_same_orders(u::Result{N}, v::Result{N}) where N
-    @assert u.orders == v.orders
+    if u.orders != v.orders
+        throw(ArgumentError("Order mismatch between fitting results"))
+    end
 end
 
 Base.:+(u::Result) = u
