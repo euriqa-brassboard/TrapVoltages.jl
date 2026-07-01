@@ -9,6 +9,8 @@ include("traps.jl")
 using .Traps
 export TrapDesc
 
+include("units.jl")
+
 include("potentials.jl")
 include("outputs.jl")
 
