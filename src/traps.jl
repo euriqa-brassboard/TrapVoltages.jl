@@ -195,4 +195,134 @@ end
 __populate_phoenix_positions(_trap_phoenix)
 __populate_phoenix_positions(_trap_peregrine)
 
+mutable struct ElectrodeSearchState
+    inner_idx1::Int
+    inner_idx2::Int
+    outer_idx1::Int
+    outer_idx2::Int
+
+    const pos::Float64
+    const positions::RegionElectrodePositions
+    const inner_candidates::Vector{ElectrodePosition}
+    const outer_candidates::Vector{ElectrodePosition}
+    function ElectrodeSearchState(positions::RegionElectrodePositions, pos)
+        inner_idx2 = searchsortedfirst(positions.inner, pos, lt=(x, y)->x.right < y)
+        outer_idx2 = searchsortedfirst(positions.outer, pos, lt=(x, y)->x.right < y)
+
+        return new(inner_idx2 - 1, inner_idx2, outer_idx2 - 1, outer_idx2,
+                   pos, positions, ElectrodePosition[], ElectrodePosition[])
+    end
+end
+
+@inline function _find_next_distance!(state::ElectrodeSearchState)
+    positions = state.positions
+    # First find the closest distance
+    dist = Inf
+    if state.inner_idx2 <= length(positions.inner)
+        dist = min(dist, distance(positions.inner[state.inner_idx2], state.pos))
+    end
+    if state.inner_idx1 > 0
+        dist = min(dist, distance(positions.inner[state.inner_idx1], state.pos))
+    end
+    if state.outer_idx2 <= length(positions.outer)
+        dist = min(dist, distance(positions.outer[state.outer_idx2], state.pos))
+    end
+    if state.outer_idx1 > 0
+        dist = min(dist, distance(positions.outer[state.outer_idx1], state.pos))
+    end
+    if !isfinite(dist)
+        return dist
+    end
+    empty!(state.inner_candidates)
+    empty!(state.outer_candidates)
+    while state.inner_idx2 <= length(positions.inner)
+        epos = positions.inner[state.inner_idx2]
+        if distance(epos, state.pos) > dist
+            break
+        end
+        push!(state.inner_candidates, epos)
+        state.inner_idx2 += 1
+    end
+    while state.inner_idx1 > 0
+        epos = positions.inner[state.inner_idx1]
+        if distance(epos, state.pos) > dist
+            break
+        end
+        push!(state.inner_candidates, epos)
+        state.inner_idx1 -= 1
+    end
+    while state.outer_idx2 <= length(positions.outer)
+        epos = positions.outer[state.outer_idx2]
+        if distance(epos, state.pos) > dist
+            break
+        end
+        push!(state.outer_candidates, epos)
+        state.outer_idx2 += 1
+    end
+    while state.outer_idx1 > 0
+        epos = positions.outer[state.outer_idx1]
+        if distance(epos, state.pos) > dist
+            break
+        end
+        push!(state.outer_candidates, epos)
+        state.outer_idx1 -= 1
+    end
+    @assert !isempty(state.inner_candidates) || !isempty(state.outer_candidates)
+    return dist
+end
+
+"""
+Find at least `min_num` electrodes that are the closest in axial (X) position
+to `pos` (in um). All electrodes within `min_dist` will also be included.
+
+`electrode_index` is a map from electrode name to a unique ID.
+By default, ID 1 will be ignored (assumed to be ground)
+electrodes with the same ID are assumed to be shorted together
+and therefore will be treated as the same one.
+"""
+function find_electrodes(trap, electrode_index, pos;
+                         min_num=0, min_dist=0, region=1, ignore_id=(1,))
+    res = Set{Int}()
+
+    if !isassigned(trap.ele_region_pos, region)
+        throw(ArgumentError("Missing electrode position info for trap $(trap.name) region $(region)"))
+    end
+
+    search_state = ElectrodeSearchState(trap.ele_region_pos[region], pos)
+    dist_satisfied = false
+    num_satisfied = false
+
+    while true
+        num_satisfied = min_num <= length(res)
+        if num_satisfied && dist_satisfied
+            return res
+        end
+
+        dist = _find_next_distance!(search_state)
+        if !isfinite(dist)
+            if num_satisfied
+                return res
+            end
+            error("Unable to find enough terms")
+        end
+        dist_satisfied = dist >= min_dist
+
+        for p in search_state.inner_candidates
+            id = electrode_index[p.name]
+            if id in ignore_id
+                continue
+            end
+            push!(res, id)
+        end
+
+        for p in search_state.outer_candidates
+            id = electrode_index[p.name]
+            if id in ignore_id
+                continue
+            end
+            push!(res, id)
+        end
+    end
+end
+
 end
