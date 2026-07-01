@@ -169,7 +169,9 @@ end
 
 function Potential(raw::RawPotential, electrode_names::AbstractVector,
                    trap::TrapDesc)
-    @assert raw.electrodes == length(trap.ele_names)
+    if raw.electrodes != length(trap.ele_names)
+        throw(ArgumentError("Electrode number mismatch with trap info."))
+    end
     new_electrodes = length(electrode_names)
     data = Array{Float64}(undef, raw.nz, raw.ny, raw.nx, new_electrodes)
     electrode_index = Dict{String,Int}()
