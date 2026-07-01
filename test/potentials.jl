@@ -1,152 +1,182 @@
 #
 
-using TrapVoltages.Potentials
+using TrapVoltages: Potentials, TrapDesc
 
 using Test
 
 const data_dir = joinpath(@__DIR__, "test_data")
 
+function write_v0(fh, electrodes; nxyz, stride, origin)
+    write(fh, Int32(0))
+    write(fh, Int32(electrodes))
+    nx, ny, nz = nxyz
+    write(fh, Int32(nx))
+    write(fh, Int32(ny))
+    write(fh, Int32(nz))
+    write(fh, Int32(0))
+    write(fh, Float64(stride[1]))
+    write(fh, Float64(stride[2]))
+    write(fh, Float64(stride[3]))
+    write(fh, Float64(origin[1]))
+    write(fh, Float64(origin[2]))
+    write(fh, Float64(origin[3]))
+    write(fh, Int32(0))
+    write(fh, Int32(0))
+    for i in 1:electrodes
+        write(fh, Int32(i - 1))
+    end
+    data = rand(nz, ny, nx, electrodes)
+    write(fh, data)
+    return data
+end
+
+function write_v1(fh, electrodes; nxyz, stride, origin)
+    write(fh, Int32(0))
+    write(fh, Int32(electrodes))
+    nx, ny, nz = nxyz
+    write(fh, Int32(nx))
+    write(fh, Int32(ny))
+    write(fh, Int32(nz))
+    write(fh, Int32(0))
+    write(fh, 1.0)
+    write(fh, 0.0)
+    write(fh, 0.0)
+    write(fh, 0.0)
+    write(fh, 1.0)
+    write(fh, 0.0)
+    write(fh, Float64(stride[1]))
+    write(fh, Float64(stride[2]))
+    write(fh, Float64(stride[3]))
+    write(fh, Float64(origin[1]))
+    write(fh, Float64(origin[2]))
+    write(fh, Float64(origin[3]))
+    write(fh, Int32(0))
+    write(fh, Int32(0))
+    for i in 1:electrodes
+        write(fh, Int32(i - 1))
+    end
+    data = rand(nz, ny, nx, electrodes)
+    write(fh, data)
+    return data
+end
+
+function write_64(fh, electrodes; nxyz, stride, origin)
+    write(fh, Int64(0))
+    write(fh, Int64(electrodes))
+    nx, ny, nz = nxyz
+    write(fh, Int64(nx))
+    write(fh, Int64(ny))
+    write(fh, Int64(nz))
+    write(fh, Int64(0))
+    write(fh, 1.0)
+    write(fh, 0.0)
+    write(fh, 0.0)
+    write(fh, 0.0)
+    write(fh, 1.0)
+    write(fh, 0.0)
+    write(fh, Float64(stride[1]))
+    write(fh, Float64(stride[2]))
+    write(fh, Float64(stride[3]))
+    write(fh, Float64(origin[1]))
+    write(fh, Float64(origin[2]))
+    write(fh, Float64(origin[3]))
+    write(fh, Int64(0))
+    write(fh, Int64(0))
+    for i in 1:electrodes
+        write(fh, Int64(i - 1))
+    end
+    data = rand(nz, ny, nx, electrodes)
+    write(fh, data)
+    return data
+end
+
+function test_raw_potential(electrodes; nxyz)
+    mktempdir() do d
+        for (ver, f_wr, f_im) in (("v0", write_v0, Potentials.import_pillbox_v0_raw),
+                                  ("v1", write_v1, Potentials.import_pillbox_v1_raw),
+                                  ("64", write_64, Potentials.import_pillbox_64_raw))
+            stride = (rand(), rand(), rand()) .* 1e-5 .+ 1e-7
+            origin = (rand(), rand(), rand()) .* 2e-4 .- 1e-4
+
+            file = joinpath(d, "data_$(ver).bin")
+            data = open(file, "w") do fh
+                return f_wr(fh, electrodes; nxyz=nxyz, stride=stride, origin=origin)
+            end
+            p = open(f_im, file)
+            @test p.electrodes == electrodes
+            @test p.nx == nxyz[1]
+            @test p.ny == nxyz[2]
+            @test p.nz == nxyz[3]
+            @test all(p.stride .≈ stride .* 1000)
+            @test all(p.origin .≈ origin .* 1000)
+            @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
+            @test p.data == data
+
+            fsz = stat(file).size
+
+            open(file, "a") do fh
+                truncate(fh, fsz + 10)
+            end
+            @test_throws ArgumentError open(f_im, file)
+
+            open(file, "a") do fh
+                truncate(fh, fsz - 10)
+            end
+            @test_throws ArgumentError open(f_im, file)
+
+            open(file, "a") do fh
+                truncate(fh, fsz)
+            end
+            open(f_im, file)
+        end
+    end
+end
+
 @testset "Raw Potentials" begin
-    p1_v0 = open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_e92.bin"))
-    @test p1_v0.electrodes == 92
-    @test p1_v0.nx == 5
-    @test p1_v0.ny == 4
-    @test p1_v0.nz == 3
-    @test all(p1_v0.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_v0.origin .≈ (-3e-3, -1e-3, -2e-3))
-    @test size(p1_v0.data) == (3, 4, 5, 92)
+    test_raw_potential(92, nxyz=(5, 4, 3))
+    test_raw_potential(96, nxyz=(2, 3, 7))
+end
 
-    p2_v0 = open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_e96.bin"))
-    @test p2_v0.electrodes == 96
-    @test p2_v0.nx == 2
-    @test p2_v0.ny == 4
-    @test p2_v0.nz == 4
-    @test all(p2_v0.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_v0.origin .≈ (-2e-3, -2e-3, 1e-3))
-    @test size(p2_v0.data) == (4, 4, 2, 96)
+function test_trap_potential(trap; nxyz)
+    mktempdir() do d
+        for (ver, f_wr, f_im) in (("v0", write_v0, Potentials.import_pillbox_v0),
+                                  ("v1", write_v1, Potentials.import_pillbox_v1),
+                                  ("64", write_64, Potentials.import_pillbox_64))
+            electrodes = length(TrapDesc(trap).ele_names)
+            stride = (rand(), rand(), rand()) .* 1e-5 .+ 1e-7
+            origin = (rand(), rand(), rand()) .* 2e-4 .- 1e-4
 
-    @test_throws ArgumentError open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_extra.bin"))
-    @test_throws ArgumentError open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_short.bin"))
+            file = joinpath(d, "data_$(ver).bin")
+            data = open(file, "w") do fh
+                return f_wr(fh, electrodes; nxyz=nxyz, stride=stride, origin=origin)
+            end
+            p = f_im(file, trap=trap)
+            @test p.electrodes == electrodes
+            @test p.nx == nxyz[1]
+            @test p.ny == nxyz[2]
+            @test p.nz == nxyz[3]
+            @test all(p.stride .≈ stride .* 1000)
+            @test all(p.origin .≈ origin .* 1000)
+            @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
+            @test p.data == data
 
-    p1_v1 = open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_e92.bin"))
-    @test p1_v1.electrodes == 92
-    @test p1_v1.nx == 3
-    @test p1_v1.ny == 2
-    @test p1_v1.nz == 2
-    @test all(p1_v1.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_v1.origin .≈ (-1e-3, 1e-3, -2e-3))
-    @test size(p1_v1.data) == (2, 2, 3, 92)
+            file_p1 = joinpath(d, "data_p1_$(ver).bin")
+            open(file_p1, "w") do fh
+                return f_wr(fh, electrodes + 1; nxyz=nxyz, stride=stride, origin=origin)
+            end
+            @test_throws ArgumentError f_im(file_p1, trap=trap)
 
-    p2_v1 = open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_e96.bin"))
-    @test p2_v1.electrodes == 96
-    @test p2_v1.nx == 1
-    @test p2_v1.ny == 2
-    @test p2_v1.nz == 3
-    @test all(p2_v1.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_v1.origin .≈ (0e-3, -1e-3, 2e-3))
-    @test size(p2_v1.data) == (3, 2, 1, 96)
-
-    @test_throws ArgumentError open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_extra.bin"))
-    @test_throws ArgumentError open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_short.bin"))
-
-    p1_64 = open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_e92.bin"))
-    @test p1_64.electrodes == 92
-    @test p1_64.nx == 3
-    @test p1_64.ny == 2
-    @test p1_64.nz == 2
-    @test all(p1_64.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_64.origin .≈ (-1e-3, 1e-3, -2e-3))
-    @test size(p1_64.data) == (2, 2, 3, 92)
-
-    p2_64 = open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_e96.bin"))
-    @test p2_64.electrodes == 96
-    @test p2_64.nx == 1
-    @test p2_64.ny == 2
-    @test p2_64.nz == 3
-    @test all(p2_64.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_64.origin .≈ (0e-3, -1e-3, 2e-3))
-    @test size(p2_64.data) == (3, 2, 1, 96)
-
-    @test_throws ArgumentError open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_extra.bin"))
-    @test_throws ArgumentError open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_short.bin"))
+            file_m1 = joinpath(d, "data_m1_$(ver).bin")
+            open(file_m1, "w") do fh
+                return f_wr(fh, electrodes - 1; nxyz=nxyz, stride=stride, origin=origin)
+            end
+            @test_throws ArgumentError f_im(file_m1, trap=trap)
+        end
+    end
 end
 
 @testset "Potentials" begin
-    p1_v0 = Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e92.bin"),
-                                         trap="phoenix")
-    @test p1_v0.electrodes == 92
-    @test p1_v0.nx == 5
-    @test p1_v0.ny == 4
-    @test p1_v0.nz == 3
-    @test all(p1_v0.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_v0.origin .≈ (-3e-3, -1e-3, -2e-3))
-    @test size(p1_v0.data) == (3, 4, 5, 92)
-    Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e92.bin"),
-                                 trap="peregrine")
-
-    p2_v0 = Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e96.bin"),
-                                         trap="hoa")
-    @test p2_v0.electrodes == 96
-    @test p2_v0.nx == 2
-    @test p2_v0.ny == 4
-    @test p2_v0.nz == 4
-    @test all(p2_v0.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_v0.origin .≈ (-2e-3, -2e-3, 1e-3))
-    @test size(p2_v0.data) == (4, 4, 2, 96)
-
-    @test_throws ArgumentError Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e92.bin"), trap="hoa")
-    @test_throws ArgumentError Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e96.bin"), trap="phoenix")
-    @test_throws ArgumentError Potentials.import_pillbox_v0(joinpath(data_dir, "dummy_v0_e96.bin"), trap="peregrine")
-
-    p1_v1 = Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e92.bin"),
-                                         trap="phoenix")
-    @test p1_v1.electrodes == 92
-    @test p1_v1.nx == 3
-    @test p1_v1.ny == 2
-    @test p1_v1.nz == 2
-    @test all(p1_v1.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_v1.origin .≈ (-1e-3, 1e-3, -2e-3))
-    @test size(p1_v1.data) == (2, 2, 3, 92)
-    Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e92.bin"),
-                                 trap="peregrine")
-
-    p2_v1 = Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e96.bin"),
-                                         trap="hoa")
-    @test p2_v1.electrodes == 96
-    @test p2_v1.nx == 1
-    @test p2_v1.ny == 2
-    @test p2_v1.nz == 3
-    @test all(p2_v1.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_v1.origin .≈ (0e-3, -1e-3, 2e-3))
-    @test size(p2_v1.data) == (3, 2, 1, 96)
-
-    @test_throws ArgumentError Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e92.bin"), trap="hoa")
-    @test_throws ArgumentError Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e96.bin"), trap="phoenix")
-    @test_throws ArgumentError Potentials.import_pillbox_v1(joinpath(data_dir, "dummy_v1_e96.bin"), trap="peregrine")
-
-    p1_64 = Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e92.bin"),
-                                         trap="phoenix")
-    @test p1_64.electrodes == 92
-    @test p1_64.nx == 3
-    @test p1_64.ny == 2
-    @test p1_64.nz == 2
-    @test all(p1_64.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p1_64.origin .≈ (-1e-3, 1e-3, -2e-3))
-    @test size(p1_64.data) == (2, 2, 3, 92)
-    Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e92.bin"),
-                                 trap="peregrine")
-
-    p2_64 = Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e96.bin"),
-                                         trap="hoa")
-    @test p2_64.electrodes == 96
-    @test p2_64.nx == 1
-    @test p2_64.ny == 2
-    @test p2_64.nz == 3
-    @test all(p2_64.stride .≈ (1e-3, 1e-3, 1e-3))
-    @test all(p2_64.origin .≈ (0e-3, -1e-3, 2e-3))
-    @test size(p2_64.data) == (3, 2, 1, 96)
-
-    @test_throws ArgumentError Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e92.bin"), trap="hoa")
-    @test_throws ArgumentError Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e96.bin"), trap="phoenix")
-    @test_throws ArgumentError Potentials.import_pillbox_64(joinpath(data_dir, "dummy_64_e96.bin"), trap="peregrine")
+    test_trap_potential("hoa", nxyz=(5, 4, 3))
+    test_trap_potential("phoenix", nxyz=(2, 3, 7))
+    test_trap_potential("peregrine", nxyz=(2, 1, 7))
 end
