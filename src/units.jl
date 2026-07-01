@@ -14,6 +14,9 @@ end
 const q_e = 1.60217663e-19 # C
 const ε_0 = 8.8541878128e-12
 
+# Unit such that electric potential that creates 1MHz trapping frequency
+# for a particular mass has the form X^2/2,
+# and the electric potential between two ions is 1/r.
 function MHz_unit(mass, q=1)
     MHz = 1e6
     q = q * q_e
