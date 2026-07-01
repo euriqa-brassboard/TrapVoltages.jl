@@ -65,7 +65,7 @@ end
     @test yz_pr3[2] ≈ (yz_pr1[2] + yz_pr2[2]) / 2
 
     @test CenterTracker("hoa").zy_index == CenterTracker("hoa", 1).zy_index
-    CenterTracker("hoa", 2)
+    @test CenterTracker("hoa", 2).zy_index == CenterTracker(joinpath(@__DIR__, "../data/hoa/rf_center.h5"), 2).zy_index
     CenterTracker("hoa", 3)
     CenterTracker("hoa", 4)
     CenterTracker("hoa", 5)
