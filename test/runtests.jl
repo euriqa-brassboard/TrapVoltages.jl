@@ -16,6 +16,7 @@ pmap(["optimizers",
       "outputs",
       "poly_fit",
       "potentials",
+      "solutions",
       "trap",
       "units"]) do file
     println("Start testing $file")

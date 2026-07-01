@@ -17,4 +17,6 @@ include("outputs.jl")
 
 include("optimizers.jl")
 
+include("solutions.jl")
+
 end # module TrapVoltages
