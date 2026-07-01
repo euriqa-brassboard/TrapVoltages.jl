@@ -48,4 +48,25 @@ const data_dir = joinpath(@__DIR__, "test_data")
 
     @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_extra.bin"))
     @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_short.bin"))
+
+    p1_64 = Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_e92.bin"))
+    @test p1_64.electrodes == 92
+    @test p1_64.nx == 3
+    @test p1_64.ny == 2
+    @test p1_64.nz == 2
+    @test all(p1_64.stride .≈ (1e-3, 1e-3, 1e-3))
+    @test all(p1_64.origin .≈ (-1e-3, 1e-3, -2e-3))
+    @test size(p1_64.data) == (2, 2, 3, 92)
+
+    p2_64 = Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_e96.bin"))
+    @test p2_64.electrodes == 96
+    @test p2_64.nx == 1
+    @test p2_64.ny == 2
+    @test p2_64.nz == 3
+    @test all(p2_64.stride .≈ (1e-3, 1e-3, 1e-3))
+    @test all(p2_64.origin .≈ (0e-3, -1e-3, 2e-3))
+    @test size(p2_64.data) == (3, 2, 1, 96)
+
+    @test_throws ArgumentError Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_extra.bin"))
+    @test_throws ArgumentError Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_short.bin"))
 end
