@@ -13,5 +13,7 @@ using TrapVoltages.Outputs
         end
         mf2 = load_file(joinpath(d, "map.txt"), MapFile)
         @test mf2.names == ["AA", "BB", "CC", "DDDD"]
+
+        @test Dict(mf2) == Dict("AA"=>1, "BB"=>2, "CC"=>3, "DDDD"=>4)
     end
 end
