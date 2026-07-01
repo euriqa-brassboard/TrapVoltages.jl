@@ -7,7 +7,7 @@ using Test
 const data_dir = joinpath(@__DIR__, "test_data")
 
 @testset "Raw Potentials" begin
-    p1_v0 = Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_e92.bin"))
+    p1_v0 = open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_e92.bin"))
     @test p1_v0.electrodes == 92
     @test p1_v0.nx == 5
     @test p1_v0.ny == 4
@@ -16,7 +16,7 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p1_v0.origin .≈ (-3e-3, -1e-3, -2e-3))
     @test size(p1_v0.data) == (3, 4, 5, 92)
 
-    p2_v0 = Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_e96.bin"))
+    p2_v0 = open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_e96.bin"))
     @test p2_v0.electrodes == 96
     @test p2_v0.nx == 2
     @test p2_v0.ny == 4
@@ -25,10 +25,10 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p2_v0.origin .≈ (-2e-3, -2e-3, 1e-3))
     @test size(p2_v0.data) == (4, 4, 2, 96)
 
-    @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_extra.bin"))
-    @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_short.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_extra.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_v0_raw, joinpath(data_dir, "dummy_v0_short.bin"))
 
-    p1_v1 = Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_e92.bin"))
+    p1_v1 = open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_e92.bin"))
     @test p1_v1.electrodes == 92
     @test p1_v1.nx == 3
     @test p1_v1.ny == 2
@@ -37,7 +37,7 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p1_v1.origin .≈ (-1e-3, 1e-3, -2e-3))
     @test size(p1_v1.data) == (2, 2, 3, 92)
 
-    p2_v1 = Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_e96.bin"))
+    p2_v1 = open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_e96.bin"))
     @test p2_v1.electrodes == 96
     @test p2_v1.nx == 1
     @test p2_v1.ny == 2
@@ -46,10 +46,10 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p2_v1.origin .≈ (0e-3, -1e-3, 2e-3))
     @test size(p2_v1.data) == (3, 2, 1, 96)
 
-    @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_extra.bin"))
-    @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_short.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_extra.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_v1_raw, joinpath(data_dir, "dummy_v1_short.bin"))
 
-    p1_64 = Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_e92.bin"))
+    p1_64 = open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_e92.bin"))
     @test p1_64.electrodes == 92
     @test p1_64.nx == 3
     @test p1_64.ny == 2
@@ -58,7 +58,7 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p1_64.origin .≈ (-1e-3, 1e-3, -2e-3))
     @test size(p1_64.data) == (2, 2, 3, 92)
 
-    p2_64 = Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_e96.bin"))
+    p2_64 = open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_e96.bin"))
     @test p2_64.electrodes == 96
     @test p2_64.nx == 1
     @test p2_64.ny == 2
@@ -67,8 +67,8 @@ const data_dir = joinpath(@__DIR__, "test_data")
     @test all(p2_64.origin .≈ (0e-3, -1e-3, 2e-3))
     @test size(p2_64.data) == (3, 2, 1, 96)
 
-    @test_throws ArgumentError Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_extra.bin"))
-    @test_throws ArgumentError Potentials.import_pillbox_64_raw(joinpath(data_dir, "dummy_64_short.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_extra.bin"))
+    @test_throws ArgumentError open(Potentials.import_pillbox_64_raw, joinpath(data_dir, "dummy_64_short.bin"))
 end
 
 @testset "Potentials" begin

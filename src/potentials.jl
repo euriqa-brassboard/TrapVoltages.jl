@@ -14,134 +14,84 @@ struct RawPotential
     data::Array{Float64,4}
 end
 
-"""
-    import_pillbox_v0(filename) -> (header, data)
-
-Imports voltage array files of format V0, here `filename` is the name of the file
-to be read. Voltage arrays contain potential data for one electrode at 1V
-and all other electrodes at 0V on a 3D grid of points.
-
-The data is returned in the header and data fields.
-header contains the fields 'electrodes' for the number of potentials
-for different electrodes,
-'nx', 'ny', 'nz' are the number of samples in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
-"""
-function import_pillbox_v0_raw(filename)
-    open(filename) do fh
-        read(fh, Int32) # discard
-        electrodes = Int(read(fh, Int32))
-        nx = Int(read(fh, Int32))
-        ny = Int(read(fh, Int32))
-        nz = Int(read(fh, Int32))
-        read(fh, Int32) # vsets
-        stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        # I have no idea what's stored in these
+function import_pillbox_v0_raw(fh)
+    read(fh, Int32) # discard
+    electrodes = Int(read(fh, Int32))
+    nx = Int(read(fh, Int32))
+    ny = Int(read(fh, Int32))
+    nz = Int(read(fh, Int32))
+    read(fh, Int32) # vsets
+    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    # I have no idea what's stored in these
+    read(fh, Int32)
+    read(fh, Int32)
+    for i in 1:electrodes
         read(fh, Int32)
-        read(fh, Int32)
-        for i in 1:electrodes
-            read(fh, Int32)
-        end
-        databytes = read(fh)
-        if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
-            throw(ArgumentError("Did not find the right number of samples"))
-        end
-        data = Array{Float64}(undef, nz, ny, nx, electrodes)
-        copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
     end
+    databytes = read(fh)
+    if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
+        throw(ArgumentError("Did not find the right number of samples"))
+    end
+    data = Array{Float64}(undef, nz, ny, nx, electrodes)
+    copyto!(data, reinterpret(Float64, databytes))
+    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
 end
 
-"""
-    import_pillbox_v1(filename) -> (header, data)
-
-Imports voltage array files of format V1, the current format,
-here filename is the name of the file to be read.
-Voltage arrays contain potential data for one electrode at 1V
-and all other electrodes at 0V on a 3D grid of points.
-
-The data is returned in the header and data fields.
-header contains the fields 'electrodes' for the number of potentials
-for different electrodes, 'nx', 'ny', 'nz' are the number of samples
-in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
-"""
-function import_pillbox_v1_raw(filename)
-    open(filename) do fh
-        read(fh, Int32) # discard
-        electrodes = Int(read(fh, Int32))
-        nx = Int(read(fh, Int32))
-        ny = Int(read(fh, Int32))
-        nz = Int(read(fh, Int32))
-        read(fh, Int32) # vsets
-        # xaxis, yaxis
-        for _ in 1:6
-            read(fh, Float64)
-        end
-        stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        # I have no idea what's stored in these
-        read(fh, Int32)
-        read(fh, Int32)
-        for i in 1:electrodes
-            read(fh, Int32)
-        end
-        databytes = read(fh)
-        if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
-            throw(ArgumentError("Did not find the right number of samples"))
-        end
-        data = Array{Float64}(undef, nz, ny, nx, electrodes)
-        copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
+function import_pillbox_v1_raw(fh)
+    read(fh, Int32) # discard
+    electrodes = Int(read(fh, Int32))
+    nx = Int(read(fh, Int32))
+    ny = Int(read(fh, Int32))
+    nz = Int(read(fh, Int32))
+    read(fh, Int32) # vsets
+    # xaxis, yaxis
+    for _ in 1:6
+        read(fh, Float64)
     end
+    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    # I have no idea what's stored in these
+    read(fh, Int32)
+    read(fh, Int32)
+    for i in 1:electrodes
+        read(fh, Int32)
+    end
+    databytes = read(fh)
+    if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
+        throw(ArgumentError("Did not find the right number of samples"))
+    end
+    data = Array{Float64}(undef, nz, ny, nx, electrodes)
+    copyto!(data, reinterpret(Float64, databytes))
+    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
 end
 
-"""
-    import_pillbox_64(filename) -> (header, data)
-
-Imports voltage array files in 64 bit format,
-here filename is the name of the file to be read.
-Voltage arrays contain potential data for one electrode at 1V
-and all other electrodes at 0V on a 3D grid of points.
-
-The data is returned in the header and data fields.
-header contains the fields 'electrodes' for the number of potentials
-for different electrodes, 'nx', 'ny', 'nz' are the number of samples
-in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
-"""
-function import_pillbox_64_raw(filename)
-    open(filename) do fh
-        read(fh, Int64) # discard
-        electrodes = Int(read(fh, Int64))
-        nx = Int(read(fh, Int64))
-        ny = Int(read(fh, Int64))
-        nz = Int(read(fh, Int64))
-        read(fh, Int64) # vsets
-        # xaxis, yaxis
-        for _ in 1:6
-            read(fh, Float64)
-        end
-        stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-        # I have no idea what's stored in these
-        read(fh, Int64)
-        read(fh, Int64)
-        for i in 1:electrodes
-            read(fh, Int64)
-        end
-        databytes = read(fh)
-        if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
-            throw(ArgumentError("Did not find the right number of samples"))
-        end
-        data = Array{Float64}(undef, nz, ny, nx, electrodes)
-        copyto!(data, reinterpret(Float64, databytes))
-        return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
+function import_pillbox_64_raw(fh)
+    read(fh, Int64) # discard
+    electrodes = Int(read(fh, Int64))
+    nx = Int(read(fh, Int64))
+    ny = Int(read(fh, Int64))
+    nz = Int(read(fh, Int64))
+    read(fh, Int64) # vsets
+    # xaxis, yaxis
+    for _ in 1:6
+        read(fh, Float64)
     end
+    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    # I have no idea what's stored in these
+    read(fh, Int64)
+    read(fh, Int64)
+    for i in 1:electrodes
+        read(fh, Int64)
+    end
+    databytes = read(fh)
+    if length(databytes) != electrodes * nx * ny * nz * sizeof(Float64)
+        throw(ArgumentError("Did not find the right number of samples"))
+    end
+    data = Array{Float64}(undef, nz, ny, nx, electrodes)
+    copyto!(data, reinterpret(Float64, databytes))
+    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
 end
 
 for (name, i) in ((:x, 1), (:y, 2), (:z, 3))
@@ -248,22 +198,70 @@ function _get_electrode_names(aliases, electrode_names, trap::TrapDesc)
     return _aliases_to_names(aliases, trap)
 end
 
-function import_pillbox_v0(filename; aliases=nothing, electrode_names=nothing, trap)
+_read_file(file::AbstractString, @specialize(cb)) = open(cb, file)
+_read_file(file, cb) = cb(file)
+
+function _import_internal(file, @specialize(cb), aliases, electrode_names, trap)
     trap = TrapDesc(trap)
-    return Potential(import_pillbox_v0_raw(filename),
+    return Potential(_read_file(file, cb),
                      _get_electrode_names(aliases, electrode_names, trap), trap)
 end
 
-function import_pillbox_v1(filename; aliases=nothing, electrode_names=nothing, trap)
-    trap = TrapDesc(trap)
-    return Potential(import_pillbox_v1_raw(filename),
-                     _get_electrode_names(aliases, electrode_names, trap), trap)
+"""
+    import_pillbox_v0(file)::Potential
+
+Imports voltage array files of format V0, here `file` is a `IO` object
+or the name of the file to be read.
+Voltage arrays contain potential data for one electrode at 1V
+and all other electrodes at 0V on a 3D grid of points.
+
+The data is returned in the header and data fields.
+header contains the fields 'electrodes' for the number of potentials
+for different electrodes,
+'nx', 'ny', 'nz' are the number of samples in x-, y-, and z- direction.
+'origin' is one end point of the 3D grid,
+'stride' is the stepsize in the 3 dimensions.
+"""
+function import_pillbox_v0(file; aliases=nothing, electrode_names=nothing, trap)
+    return _import_internal(file, import_pillbox_v0_raw, aliases, electrode_names, trap)
 end
 
-function import_pillbox_64(filename; aliases=nothing, electrode_names=nothing, trap)
-    trap = TrapDesc(trap)
-    return Potential(import_pillbox_64_raw(filename),
-                     _get_electrode_names(aliases, electrode_names, trap), trap)
+"""
+    import_pillbox_v1(file)::Potential
+
+Imports voltage array files of format V1, the current format,
+here `file` is a `IO` object or the name of the file to be read.
+Voltage arrays contain potential data for one electrode at 1V
+and all other electrodes at 0V on a 3D grid of points.
+
+The data is returned in the header and data fields.
+header contains the fields 'electrodes' for the number of potentials
+for different electrodes, 'nx', 'ny', 'nz' are the number of samples
+in x-, y-, and z- direction.
+'origin' is one end point of the 3D grid,
+'stride' is the stepsize in the 3 dimensions.
+"""
+function import_pillbox_v1(file; aliases=nothing, electrode_names=nothing, trap)
+    return _import_internal(file, import_pillbox_v1_raw, aliases, electrode_names, trap)
+end
+
+"""
+    import_pillbox_64(file)::Potential
+
+Imports voltage array files in 64 bit format,
+here `file` is a `IO` object or the name of the file to be read.
+Voltage arrays contain potential data for one electrode at 1V
+and all other electrodes at 0V on a 3D grid of points.
+
+The data is returned in the header and data fields.
+header contains the fields 'electrodes' for the number of potentials
+for different electrodes, 'nx', 'ny', 'nz' are the number of samples
+in x-, y-, and z- direction.
+'origin' is one end point of the 3D grid,
+'stride' is the stepsize in the 3 dimensions.
+"""
+function import_pillbox_64(file; aliases=nothing, electrode_names=nothing, trap)
+    return _import_internal(file, import_pillbox_64_raw, aliases, electrode_names, trap)
 end
 
 const _subarray_T = typeof(@view zeros(0, 0, 0, 1)[:, :, :, 1])
