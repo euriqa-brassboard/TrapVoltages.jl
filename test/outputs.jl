@@ -29,7 +29,8 @@ end
         mf = MapFile(["AA", "BB", "CC", "DDDD"])
         mf2 = MapFile(["AA", "BB", "CC"])
 
-        cf = CompensationFile(mf, ["X", "Y", "Z"], [rand(4), rand(4), rand(4)])
+        cf = CompensationFile(mf, ["X", "Y", "Z"],
+                              [rand(4), rand(4), [rand(), rand(), 1.0, -1.0]])
 
         write_file(joinpath(d, "comp.txt"), cf)
         cf2 = load_file(joinpath(d, "comp.txt"), CompensationFile)
@@ -59,5 +60,36 @@ end
                    CompensationFile(mf, ["X", "Y", "Z"], [rand(4), rand(4)]))
         @test_throws ArgumentError load_file(joinpath(d, "comp_term_mismatch.txt"),
                                              CompensationFile)
+    end
+end
+
+@testset "TransferFile" begin
+    mktempdir() do d
+        mf = MapFile(["AA", "BB", "CC", "DDDD"])
+        mf2 = MapFile(["AA", "BB", "CC"])
+
+        tf = TransferFile(mf, [rand(4), rand(4), rand(4), [rand(), rand(), 1.0, -1.0]])
+
+        write_file(joinpath(d, "trans.txt"), tf)
+        tf2 = load_file(joinpath(d, "trans.txt"), TransferFile)
+
+        @test tf2.map.names == mf.names
+        @test tf2.line_values == tf.line_values
+
+        io = IOBuffer()
+        write_file(io, tf)
+        seek(io, 0)
+        tf3 = load_file(io, TransferFile, mapfile=mf)
+
+        @test tf3.map.names == mf.names
+        @test tf3.line_values == tf.line_values
+
+        @test_throws ArgumentError load_file(joinpath(d, "trans.txt"), TransferFile,
+                                             mapfile=mf2)
+
+        write_file(joinpath(d, "trans_ele_mismatch.txt"),
+                   TransferFile(mf, [rand(4), rand(4), rand(6)]))
+        @test_throws ArgumentError load_file(joinpath(d, "trans_ele_mismatch.txt"),
+                                             TransferFile)
     end
 end

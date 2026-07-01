@@ -130,15 +130,17 @@ function load_file(file, ::Type{TransferFile}; mapfile=nothing)
     names = split(first(lines), '\t')
     if mapfile === nothing
         mapfile = MapFile(names)
-    else
-        @assert mapfile.names == names
+    elseif mapfile.names != names
+        throw(ArgumentError("Electrode name mismatch between MapFile and TransferFile"))
     end
     mapfile = mapfile::MapFile
     # Read the rest of the lines
     line_values = Vector{Float64}[]
     for line in lines
         fields = parse.(Float64, split(line, '\t'))
-        @assert length(fields) == length(mapfile.names)
+        if length(fields) != length(mapfile.names)
+            throw(ArgumentError("Wrong number of electrode for voltage solution"))
+        end
         push!(line_values, fields)
     end
     return TransferFile(mapfile, line_values)
