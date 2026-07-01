@@ -164,28 +164,29 @@ function test_trap_potential(trap; nxyz)
             data = open(file, "w") do fh
                 return f_wr(fh, electrodes; nxyz=nxyz, stride=stride, origin=origin)
             end
-            p = f_im(file, trap=trap)
-            @test p.electrodes == electrodes
-            @test p.nx == nxyz[1]
-            @test p.ny == nxyz[2]
-            @test p.nz == nxyz[3]
-            @test all(p.stride .≈ stride .* 1000)
-            @test all(p.origin .≈ origin .* 1000)
-            @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
-            @test p.data == data
+            for p in [f_im(file, trap=trap), open(fh->f_im(fh, trap=trap), file)]
+                @test p.electrodes == electrodes
+                @test p.nx == nxyz[1]
+                @test p.ny == nxyz[2]
+                @test p.nz == nxyz[3]
+                @test all(p.stride .≈ stride .* 1000)
+                @test all(p.origin .≈ origin .* 1000)
+                @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
+                @test p.data == data
 
-            for i in 1:10
-                v = Potentials.x_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[1] * 1000 + origin[1] * 1000
-                @test Potentials.x_axis_to_index(p, v) ≈ i
+                for i in 1:10
+                    v = Potentials.x_index_to_axis(p, i)
+                    @test v ≈ (i - 1) * stride[1] * 1000 + origin[1] * 1000
+                    @test Potentials.x_axis_to_index(p, v) ≈ i
 
-                v = Potentials.y_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[2] * 1000 + origin[2] * 1000
-                @test Potentials.y_axis_to_index(p, v) ≈ i
+                    v = Potentials.y_index_to_axis(p, i)
+                    @test v ≈ (i - 1) * stride[2] * 1000 + origin[2] * 1000
+                    @test Potentials.y_axis_to_index(p, v) ≈ i
 
-                v = Potentials.z_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[3] * 1000 + origin[3] * 1000
-                @test Potentials.z_axis_to_index(p, v) ≈ i
+                    v = Potentials.z_index_to_axis(p, i)
+                    @test v ≈ (i - 1) * stride[3] * 1000 + origin[3] * 1000
+                    @test Potentials.z_axis_to_index(p, v) ≈ i
+                end
             end
 
             file_p1 = joinpath(d, "data_p1_$(ver).bin")
