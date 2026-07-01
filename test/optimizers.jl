@@ -18,3 +18,14 @@ using Test
                                                    0 1
                                                    1 0] .* 0.5) ≈ [1.5, -0.5, -0.5]
 end
+
+@testset "minmax" begin
+    @test Optimizers.optimize_minmax([1 -1], [1]) ≈ [0.5, -0.5]
+    @test Optimizers.optimize_minmax([1 -1
+                                      1 1], [1, 1]) ≈ [1, 0]
+
+    @test Optimizers.optimize_minmax([1 -1 1], [1]) ≈ [1/3, -1/3, 1/3]
+    @test Optimizers.optimize_minmax([1 -1 1], [1 2]) ≈ [1/3 2/3
+                                                          -1/3 -2/3
+                                                          1/3 2/3]
+end

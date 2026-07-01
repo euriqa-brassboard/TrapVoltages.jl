@@ -4,7 +4,7 @@ import HiGHS
 using JuMP
 using LinearAlgebra
 
-function gen_minmax_model(B, x0)
+@inline function gen_minmax_model(B, x0)
     nx = size(B, 1)
     nt = size(B, 2)
     @assert nx == length(x0)
@@ -21,7 +21,7 @@ function gen_minmax_model(B, x0)
     return model, t
 end
 
-function gen_minmax_model_with_limit_terms(B, x0, limited)
+@inline function gen_minmax_model_with_limit_terms(B, x0, limited)
     nx = size(B, 1)
     nt = size(B, 2)
     @assert nx == length(x0)
@@ -55,9 +55,10 @@ function optimize_minmax_span(B, x0; limited=nothing)
     end
 end
 
-function optimize_minmax(A, y::AbstractVector)
+function optimize_minmax(A, y::Union{AbstractVector, AbstractMatrix})
     x0 = A \ y
     ny, nx = size(A)
+    ns = size(y, 2)
     nt = nx - ny
     if nt <= 0
         return x0
@@ -66,22 +67,14 @@ function optimize_minmax(A, y::AbstractVector)
     # the degrees of freedom left in x are the ones that satisfies A * x = 0
     # In another word, these are the x's that are orthogonal to all rows of A.
     # We can find the basis set that spans such space using QR decomposition.
-    B = qr(A').Q[:, (ny + 1):nx]
-    model, t = gen_minmax_model(B, x0)
-    JuMP.optimize!(model)
-    return B * value.(t) .+ x0
-end
-
-function optimize_minmax(A, y::AbstractMatrix)
-    ny, nx = size(A)
-    @assert ny == size(y, 1)
-    ns = size(y, 2)
-
-    x = Matrix{Float64}(undef, nx, ns)
+    B = @view(qr(A').Q[:, (ny + 1):nx])
     for i in 1:ns
-        x[:, i] .= optimize_minmax(A, @view(y[:, i]))
+        x = @view(x0[:, i])
+        model, t = gen_minmax_model(B, x)
+        JuMP.optimize!(model)
+        mul!(x, B, value.(t), true, true)
     end
-    return x
+    return x0
 end
 
 end
