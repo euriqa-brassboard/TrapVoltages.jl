@@ -13,6 +13,7 @@ else
 end
 
 pmap(["optimizers",
+      "outputs",
       "poly_fit",
       "potentials",
       "trap",
