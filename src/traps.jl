@@ -11,6 +11,16 @@ struct ElectrodePosition
     up::Bool
 end
 
+function distance(pos::ElectrodePosition, x)
+    if x < pos.left
+        return pos.left - x
+    elseif x > pos.right
+        return x - pos.right
+    else
+        return 0.0
+    end
+end
+
 struct RegionElectrodePositions
     inner::Vector{ElectrodePosition}
     outer::Vector{ElectrodePosition}
