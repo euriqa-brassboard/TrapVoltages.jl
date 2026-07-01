@@ -18,5 +18,7 @@ include("outputs.jl")
 include("optimizers.jl")
 
 include("solutions.jl")
+using .Solutions: CenterTracker
+public CenterTracker
 
 end # module TrapVoltages
