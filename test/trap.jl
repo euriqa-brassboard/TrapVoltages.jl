@@ -91,4 +91,12 @@ end
 
     e6 = find_electrodes("phoenix", px.ele_indices, 0, min_dist=40, ignore_id=())
     @test sort!([px.ele_names[e] for e in e6]) == ["Q18", "Q19", "Q20", "Q21", "Q22", "Q23", "Q52", "Q53", "Q54", "Q55", "Q56", "Q57"]
+
+    id_q18 = px.ele_indices["Q18"]
+    id_q57 = px.ele_indices["Q57"]
+
+    e7 = find_electrodes("phoenix", px.ele_indices, 0, min_dist=40, ignore_id=(id_q18, id_q57))
+    @test sort!([px.ele_names[e] for e in e7]) == ["Q19", "Q20", "Q21", "Q22", "Q23", "Q52", "Q53", "Q54", "Q55", "Q56"]
+
+    @test_throws ErrorException find_electrodes("phoenix", px.ele_indices, 0, min_num=100)
 end
