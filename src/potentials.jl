@@ -4,6 +4,10 @@ module Potentials
 
 import ..PolyFit, ..get_single, ..TrapDesc
 
+export import_pillbox_v0, import_pillbox_v1, import_pillbox_64
+
+public FitCache, get_multi_electrodes
+
 struct RawPotential
     electrodes::Int
     nx::Int

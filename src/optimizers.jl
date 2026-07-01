@@ -4,6 +4,8 @@ import HiGHS
 using JuMP
 using LinearAlgebra
 
+export optimize_minmax, optimize_minmax_span
+
 @inline function gen_minmax_model(B, x0)
     nx = size(B, 1)
     nt = size(B, 2)
