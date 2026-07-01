@@ -12,4 +12,6 @@ export TrapDesc
 include("potentials.jl")
 include("outputs.jl")
 
+include("optimizers.jl")
+
 end # module TrapVoltages
