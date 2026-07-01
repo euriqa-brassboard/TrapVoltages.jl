@@ -8,6 +8,7 @@ include("poly_fit.jl")
 include("traps.jl")
 using .Traps
 export TrapDesc
+public find_electrodes
 
 include("units.jl")
 

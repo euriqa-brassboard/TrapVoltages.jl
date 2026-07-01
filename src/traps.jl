@@ -2,7 +2,7 @@
 
 module Traps
 
-export TrapDesc
+export TrapDesc, find_electrodes
 
 struct ElectrodePosition
     name::String
@@ -104,7 +104,7 @@ for trap in (_trap_phoenix, _trap_peregrine)
 
     @assert nQ % 2 == 0
     nQ_outer = nQ ÷ 2
-    left_edge = -(begin_gnd + nL + nS * S_rep1 + nQ ÷ 2)
+    left_edge = -(begin_gnd + nL + nS * S_rep1 + nQ ÷ 2) + 0.5
 
     pos_inner = left_edge + begin_gnd
     pos_outer = left_edge
