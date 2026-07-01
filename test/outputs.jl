@@ -15,5 +15,11 @@ using TrapVoltages.Outputs
         @test mf2.names == ["AA", "BB", "CC", "DDDD"]
 
         @test Dict(mf2) == Dict("AA"=>1, "BB"=>2, "CC"=>3, "DDDD"=>4)
+
+        io = IOBuffer()
+        write_file(io, mf)
+        seek(io, 0)
+        mf3 = load_file(io, MapFile)
+        @test mf3.names == ["AA", "BB", "CC", "DDDD"]
     end
 end
