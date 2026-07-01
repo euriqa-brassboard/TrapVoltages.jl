@@ -293,6 +293,7 @@ and therefore will be treated as the same one.
 function find_electrodes(trap, electrode_index, pos;
                          min_num=0, min_dist=0, region=1, ignore_id=(1,))
     res = Set{Int}()
+    trap = TrapDesc(trap)
 
     if !isassigned(trap.ele_region_pos, region)
         throw(ArgumentError("Missing electrode position info for trap $(trap.name) region $(region)"))
