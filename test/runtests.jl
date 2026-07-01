@@ -12,7 +12,8 @@ else
     end
 end
 
-pmap(["poly_fit",
+pmap(["optimizers",
+      "poly_fit",
       "potentials",
       "trap"]) do file
     println("Start testing $file")

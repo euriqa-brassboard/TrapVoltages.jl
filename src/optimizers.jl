@@ -5,7 +5,8 @@ using JuMP
 using LinearAlgebra
 
 function gen_minmax_model(B, x0)
-    nx, nt = size(B)
+    nx = size(B, 1)
+    nt = size(B, 2)
     @assert nx == length(x0)
 
     model = Model(HiGHS.Optimizer)
@@ -21,7 +22,8 @@ function gen_minmax_model(B, x0)
 end
 
 function gen_minmax_model_with_limit_terms(B, x0, limited)
-    nx, nt = size(B)
+    nx = size(B, 1)
+    nt = size(B, 2)
     @assert nx == length(x0)
     @assert nx == size(limited, 1)
     nl = size(limited, 2)
