@@ -19,4 +19,8 @@ using TrapVoltages
     @test TrapDesc(hoa) === hoa
 
     @test_throws ArgumentError TrapDesc("unknown")
+
+    # Make coverage report happy...
+    pabc = TrapDesc("abc", copy(px.ele_names))
+    @test px.ele_indices == pabc.ele_indices
 end

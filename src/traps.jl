@@ -69,7 +69,7 @@ function TrapDesc(name::AbstractString)
     throw(ArgumentError("Unknown trap name $(name)"))
 end
 
-function __populate_phoenix_positions(trap)
+for trap in (_trap_phoenix, _trap_peregrine)
     # X position of electrodes for phoenix and peregrine traps.
     # We need to know the axial (X) positions of the electrodes so that we can figure out
     # which electrodes to use for generating potentials at a given location.
@@ -200,10 +200,7 @@ function __populate_phoenix_positions(trap)
     push!(positions.outer,
           ElectrodePosition("O1", pos_outer * unit_um,
                             (pos_inner + end_gnd) * unit_um, false))
-    return
 end
-__populate_phoenix_positions(_trap_phoenix)
-__populate_phoenix_positions(_trap_peregrine)
 
 mutable struct ElectrodeSearchState
     inner_idx1::Int
