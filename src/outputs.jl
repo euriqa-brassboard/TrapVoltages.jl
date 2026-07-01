@@ -79,8 +79,8 @@ function load_file(file, ::Type{CompensationFile}; mapfile=nothing)
             # and now it's the line with the electrode names
             if mapfile === nothing
                 mapfile = MapFile(fields)
-            else
-                @assert mapfile.names == fields
+            elseif mapfile.names != fields
+                throw(ArgumentError("Electrode name mismatch between MapFile and CompensationFile"))
             end
             break
         end
@@ -92,10 +92,14 @@ function load_file(file, ::Type{CompensationFile}; mapfile=nothing)
     term_values = Vector{Float64}[]
     for line in lines
         fields = parse.(Float64, split(line, '\t'))
-        @assert length(fields) == length(mapfile.names)
+        if length(fields) != length(mapfile.names)
+            throw(ArgumentError("Wrong number of electrode for voltage solution"))
+        end
         push!(term_values, fields)
     end
-    @assert length(term_values) == length(term_names)
+    if length(term_values) != length(term_names)
+        throw(ArgumentError("Mismatch between the number of term names and term values"))
+    end
     return CompensationFile(mapfile, term_names, term_values)
 end
 
