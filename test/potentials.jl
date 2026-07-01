@@ -27,4 +27,25 @@ const data_dir = joinpath(@__DIR__, "test_data")
 
     @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_extra.bin"))
     @test_throws ArgumentError Potentials.import_pillbox_v0_raw(joinpath(data_dir, "dummy_v0_short.bin"))
+
+    p1_v1 = Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_e92.bin"))
+    @test p1_v1.electrodes == 92
+    @test p1_v1.nx == 3
+    @test p1_v1.ny == 2
+    @test p1_v1.nz == 2
+    @test all(p1_v1.stride .≈ (1e-3, 1e-3, 1e-3))
+    @test all(p1_v1.origin .≈ (-1e-3, 1e-3, -2e-3))
+    @test size(p1_v1.data) == (2, 2, 3, 92)
+
+    p2_v1 = Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_e96.bin"))
+    @test p2_v1.electrodes == 96
+    @test p2_v1.nx == 1
+    @test p2_v1.ny == 2
+    @test p2_v1.nz == 3
+    @test all(p2_v1.stride .≈ (1e-3, 1e-3, 1e-3))
+    @test all(p2_v1.origin .≈ (0e-3, -1e-3, 2e-3))
+    @test size(p2_v1.data) == (3, 2, 1, 96)
+
+    @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_extra.bin"))
+    @test_throws ArgumentError Potentials.import_pillbox_v1_raw(joinpath(data_dir, "dummy_v1_short.bin"))
 end
