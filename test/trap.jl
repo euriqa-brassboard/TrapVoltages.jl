@@ -76,4 +76,19 @@ end
 
     e1 = find_electrodes("phoenix", px.ele_indices, 0)
     @test sort!([px.ele_names[e] for e in e1]) == ["Q20", "Q21", "Q54", "Q55"]
+    e2 = find_electrodes("phoenix", px.ele_indices, 0, min_dist=5000, ignore_id=())
+    @test length(e2) == 90
+    @test !(1 in e2)
+
+    e3 = find_electrodes("phoenix", px.ele_indices, 0, min_num=6, ignore_id=())
+    @test sort!([px.ele_names[e] for e in e3]) == ["Q18", "Q19", "Q20", "Q21", "Q22", "Q23", "Q54", "Q55"]
+
+    e4 = find_electrodes("phoenix", px.ele_indices, 1, min_num=6, ignore_id=())
+    @test sort!([px.ele_names[e] for e in e4]) == ["Q20", "Q21", "Q22", "Q23", "Q54", "Q55"]
+
+    e5 = find_electrodes("phoenix", px.ele_indices, 0, min_num=9, ignore_id=())
+    @test sort!([px.ele_names[e] for e in e5]) == ["Q18", "Q19", "Q20", "Q21", "Q22", "Q23", "Q52", "Q53", "Q54", "Q55", "Q56", "Q57"]
+
+    e6 = find_electrodes("phoenix", px.ele_indices, 0, min_dist=40, ignore_id=())
+    @test sort!([px.ele_names[e] for e in e6]) == ["Q18", "Q19", "Q20", "Q21", "Q22", "Q23", "Q52", "Q53", "Q54", "Q55", "Q56", "Q57"]
 end
