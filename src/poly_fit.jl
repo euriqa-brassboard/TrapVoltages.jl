@@ -123,8 +123,9 @@ function order_index(res::Result{N}, order::Vararg{Integer,N}) where N
 end
 
 function Base.:\(fitter::Fitter{N}, data::AbstractArray{T,N} where T) where N
-    return Result{N}(fitter.orders,
-                     (fitter.coefficient \ vec(data)) .* fitter.scales)
+    coeff = fitter.coefficient \ vec(data)
+    @inbounds(coeff .= coeff .* fitter.scales)
+    return Result{N}(fitter.orders, coeff)
 end
 
 function Base.getindex(res::Result{N}, order::Vararg{Integer,N}) where N
