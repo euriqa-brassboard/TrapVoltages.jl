@@ -4,6 +4,8 @@ module Potentials
 
 import ..PolyFit, ..get_single, ..TrapDesc
 
+using DelimitedFiles
+
 export import_pillbox_v0, import_pillbox_v1, import_pillbox_64
 
 public FitCache, get_multi_electrodes
@@ -328,6 +330,15 @@ function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3},
     res = 0.0
     for (ele, v) in electrodes_voltages
         res += get_single(cache, ele, pos, orders) * v
+    end
+    return res
+end
+
+function load_short_map(fname)
+    m = readdlm(fname, ',', String)
+    res = Dict{String,String}()
+    for i in 1:size(m, 1)
+        res[m[i, 1]] = m[i, 2]
     end
     return res
 end
