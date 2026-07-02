@@ -5,8 +5,11 @@ Tools to find voltage solutions (in terms of voltages on the electrodes)
 """
 module Solutions
 
-import ..PolyFit, ..gradient, ..Units.TrapUnits
+import ..PolyFit, ..gradient, ..Units.TrapUnits, ..Potentials, ..Optimizers
+using ..Traps
+
 using NLsolve
+using LinearAlgebra
 
 function find_flat_point(data::A; init=ntuple(i->(size(data, i) + 1) / 2, Val(N))) where (A<:AbstractArray{T,N} where T) where N
     fitter = PolyFit.Fitter(ntuple(i->3, Val(N))...)
@@ -148,6 +151,88 @@ function compensate_terms(fit::PolyFit.Result{3}, stride;
     end
 
     return res
+end
+
+function compensate_terms(fitting::Potentials.Fitting, pos::NTuple{3};
+                          unit::TrapUnits, mask::Val{Terms}=TermMask(),
+                          min_num=20, min_dist=0, region=1, ignore_id=(1,)) where Terms
+    # pos is in xyz index
+    potential = fitting.potential
+    x_coord = Potentials.x_index_to_axis(potential, pos[1]) .* 1000
+    ele_select = find_electrodes(potential.trap, potential.electrode_index,
+                                 x_coord, min_num=min_num, min_dist=min_dist,
+                                 region=1, ignore_id=ignore_id)
+    ele_select = sort!(collect(ele_select))
+    fits = [get(fitting, e, pos) for e in ele_select]
+    # Change stride to um in unit
+    stride_um = potential.stride .* 1000
+    nfits = length(fits)
+    nterms = count(Terms)
+    coefficient = Matrix{Float64}(undef, nterms, nfits)
+    for i in 1:nfits
+        coefficient[:, i] .= Tuple(compensate_terms(fits[i], stride_um,
+                                                    unit=unit, mask=mask))
+    end
+    return ele_select, coefficient
+end
+
+function solve_compensate(fitting::Potentials.Fitting, pos::NTuple{3};
+                          mask::Val{Terms}=TermMask(), minmax=true, kws...) where Terms
+    ele_select, coefficient = compensate_terms(fitting, pos; mask=mask, kws...)
+    nterms = count(Terms)
+    M = Matrix(I, nterms, nterms)
+    if minmax
+        X = Optimizers.optimize_minmax(coefficient, M)
+    else
+        X = coefficient \ M
+    end
+    res = (;)
+    idx = 1
+    if Terms.dx
+        res = (; res..., dx=X[:, idx])
+        idx += 1
+    end
+    if Terms.dy
+        res = (; res..., dy=X[:, idx])
+        idx += 1
+    end
+    if Terms.dz
+        res = (; res..., dz=X[:, idx])
+        idx += 1
+    end
+    if Terms.xy
+        res = (; res..., xy=X[:, idx])
+        idx += 1
+    end
+    if Terms.yz
+        res = (; res..., yz=X[:, idx])
+        idx += 1
+    end
+    if Terms.zx
+        res = (; res..., zx=X[:, idx])
+        idx += 1
+    end
+    if Terms.z2
+        res = (; res..., z2=X[:, idx])
+        idx += 1
+    end
+    if Terms.x2
+        res = (; res..., x2=X[:, idx])
+        idx += 1
+    end
+    if Terms.x3
+        res = (; res..., x3=X[:, idx])
+        idx += 1
+    end
+    if Terms.x4
+        res = (; res..., x4=X[:, idx])
+        idx += 1
+    end
+    if Terms.x2z
+        res = (; res..., x2z=X[:, idx])
+        idx += 1
+    end
+    return ele_select, res
 end
 
 end
