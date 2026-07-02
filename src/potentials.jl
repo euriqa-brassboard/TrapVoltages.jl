@@ -271,6 +271,24 @@ function import_pillbox_64(file; aliases=nothing, electrode_names=nothing, trap)
     return _import_internal(file, import_pillbox_64_raw, aliases, electrode_names, trap)
 end
 
+"""
+Calculate the 3D potential given the electrode voltages.
+The potential is provided in a `Potential` object whereas the voltages are given
+in a map between electrode name/index and the voltage value.
+"""
+function get_potential(potential::Potential, electrodes_voltages)
+    res = zeros(size(potential.data)[1:3])
+    for (ele, v) in electrodes_voltages
+        if isa(ele, Integer)
+            ele_id = Int(ele)::Int
+        else
+            ele_id = potential.electrode_index[ele]
+        end
+        res .= muladd.(v, @view(potential.data[:, :, :, ele_id]), res)
+    end
+    return res
+end
+
 const _subarray_T = typeof(@view zeros(0, 0, 0, 1)[:, :, :, 1])
 
 _inv3((x, y, z)) = (z, y, x)
