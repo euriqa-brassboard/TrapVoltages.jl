@@ -271,11 +271,15 @@ end
 
 const _subarray_T = typeof(@view zeros(0, 0, 0, 1)[:, :, :, 1])
 
+_inv3((x, y, z)) = (z, y, x)
+
 struct FitCache
     fitter::PolyFit.Fitter{3}
     potential::Potential
     cache::Vector{PolyFit.FitCache{3,_subarray_T}}
-    function FitCache(fitter::PolyFit.Fitter{3}, potential::Potential)
+    # orders and sizes are in x, y, z order, potential in z, y, x order
+    function FitCache(potential::Potential; orders=(4, 2, 2), sizes)
+        fitter = PolyFit.Fitter(_inv3(orders...)..., sizes=_inv3(sizes))
         return new(fitter, potential,
                    Vector{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
     end
@@ -293,13 +297,14 @@ end
 Base.get(cache::FitCache, name::AbstractString) =
     get(cache, cache.potential.electrode_index[name])
 
-Base.get(cache::FitCache, electrode::Union{AbstractString,Integer}, pos::NTuple{3};
-         fit_center=pos) =
-             get(get(cache, electrode), pos; fit_center=fit_center)
+Base.get(cache::FitCache, electrode::Union{AbstractString,Integer},
+         pos::NTuple{3}; fit_center=pos) =
+             get(get(cache, electrode), _inv3(pos); fit_center=_inv3(fit_center))
 
-get_single(cache::FitCache, electrode::Union{AbstractString,Integer}, pos::NTuple{3},
-           orders::NTuple{3}; fit_center=pos) =
-               get_single(get(cache, electrode), pos, orders; fit_center=fit_center)
+get_single(cache::FitCache, electrode::Union{AbstractString,Integer},
+           pos::NTuple{3}, orders::NTuple{3}; fit_center=pos) =
+               get_single(get(cache, electrode), _inv3(pos), _inv3(orders);
+                          fit_center=_inv3(fit_center))
 
 function get_multi_electrodes(cache::FitCache, electrodes_voltages, pos::NTuple{3})
     local res
