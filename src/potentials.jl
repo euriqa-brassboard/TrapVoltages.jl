@@ -119,6 +119,7 @@ struct Potential
     data::Array{Float64,4}
     electrode_index::Dict{String,Int}
     electrode_names::Vector{Vector{String}}
+    trap::TrapDesc
 end
 
 function Potential(raw::RawPotential, electrode_names::AbstractVector,
@@ -145,8 +146,8 @@ function Potential(raw::RawPotential, electrode_names::AbstractVector,
         @assert !first
     end
     return Potential(new_electrodes, raw.nx, raw.ny, raw.nz,
-                     raw.stride, raw.origin,
-                     data, electrode_index, electrode_names)
+                     raw.stride, raw.origin, data,
+                     electrode_index, electrode_names, trap)
 end
 
 for (name, i) in ((:x, 1), (:y, 2), (:z, 3))

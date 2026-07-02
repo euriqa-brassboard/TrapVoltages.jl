@@ -173,6 +173,7 @@ function test_trap_potential(trap; nxyz)
                 @test all(p.origin .≈ origin .* 1000)
                 @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
                 @test p.data == data
+                @test p.trap === TrapDesc(trap)
 
                 for i in 1:10
                     v = Potentials.x_index_to_axis(p, i)
