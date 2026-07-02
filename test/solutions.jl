@@ -83,6 +83,8 @@ macro test_term(term)
     end
 end
 
+unwrap(::Val{V}) where V = V
+
 @testset "Compensation Terms" begin
     fit = PF.Result{3}((2, 2, 4), zeros(3 * 3 * 5))
     for (dx, dy, dz, xy, yz, zx, z2,
@@ -94,8 +96,9 @@ end
                                                (false, true))
         mask = Solutions.TermMask(dx=dx, dy=dy, dz=dz, xy=xy, yz=yz, zx=zx, z2=z2,
                                   x2=x2, x3=x3, x4=x4, x2z=x2z)
+        nterms =  dx + dy + dz + xy + yz + zx + z2 + x2 + x3 + x4 + x2z
 
-        nterms = dx + dy + dz + xy + yz + zx + z2 + x2 + x3 + x4 + x2z
+        @test count(unwrap(mask)) == nterms
         if 3 < nterms < 9
             # Limit compilation
             continue

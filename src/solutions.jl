@@ -73,6 +73,9 @@ struct TermMask
     global @inline _term_mask(args...) = new(args...)
 end
 
+Base.count(mask::TermMask) = (mask.dx + mask.dy + mask.dz + mask.xy + mask.yz + mask.zx +
+    mask.z2 + mask.x2 + mask.x3 + mask.x4 + mask.x2z)
+
 @inline TermMask(; dx=true, dy=true, dz=true, xy=true, yz=true, zx=true, z2=true,
                  x2=true, x3=true, x4=true, x2z=false) =
                      Val(_term_mask(dx, dy, dz, xy, yz, zx, z2, x2, x3, x4, x2z))
