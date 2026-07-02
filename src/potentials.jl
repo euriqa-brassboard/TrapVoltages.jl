@@ -273,19 +273,19 @@ const _subarray_T = typeof(@view zeros(0, 0, 0, 1)[:, :, :, 1])
 
 _inv3((x, y, z)) = (z, y, x)
 
-struct FitCache
+struct Fitting
     fitter::PolyFit.Fitter{3}
     potential::Potential
     cache::Vector{PolyFit.FitCache{3,_subarray_T}}
     # orders and sizes are in x, y, z order, potential in z, y, x order
-    function FitCache(potential::Potential; orders=(4, 2, 2), sizes)
+    function Fitting(potential::Potential; orders=(4, 2, 2), sizes)
         fitter = PolyFit.Fitter(_inv3(orders...)..., sizes=_inv3(sizes))
         return new(fitter, potential,
                    Vector{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
     end
 end
 
-function Base.get(cache::FitCache, idx::Integer)
+function Base.get(cache::Fitting, idx::Integer)
     if isassigned(cache.cache, idx)
         return cache.cache[idx]
     end
@@ -294,19 +294,19 @@ function Base.get(cache::FitCache, idx::Integer)
     return fit_cache
 end
 
-Base.get(cache::FitCache, name::AbstractString) =
+Base.get(cache::Fitting, name::AbstractString) =
     get(cache, cache.potential.electrode_index[name])
 
-Base.get(cache::FitCache, electrode::Union{AbstractString,Integer},
+Base.get(cache::Fitting, electrode::Union{AbstractString,Integer},
          pos::NTuple{3}; fit_center=pos) =
              get(get(cache, electrode), _inv3(pos); fit_center=_inv3(fit_center))
 
-get_single(cache::FitCache, electrode::Union{AbstractString,Integer},
+get_single(cache::Fitting, electrode::Union{AbstractString,Integer},
            pos::NTuple{3}, orders::NTuple{3}; fit_center=pos) =
                get_single(get(cache, electrode), _inv3(pos), _inv3(orders);
                           fit_center=_inv3(fit_center))
 
-function get_multi_electrodes(cache::FitCache, electrodes_voltages, pos::NTuple{3})
+function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3})
     local res
     for (ele, v) in electrodes_voltages
         term = get(cache, ele, pos) * v
@@ -323,8 +323,8 @@ function get_multi_electrodes(cache::FitCache, electrodes_voltages, pos::NTuple{
     return res
 end
 
-function get_multi_electrodes(cache::FitCache, electrodes_voltages, pos::NTuple{3},
-                              orders::NTuple{3})
+function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3},
+                        orders::NTuple{3})
     res = 0.0
     for (ele, v) in electrodes_voltages
         res += get_single(cache, ele, pos, orders) * v
