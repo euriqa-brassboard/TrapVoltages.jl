@@ -287,31 +287,31 @@ struct Fitting
     end
 end
 
-function Base.get(cache::Fitting, idx::Integer)
-    if isassigned(cache.cache, idx)
-        return cache.cache[idx]
+function Base.get(fitting::Fitting, idx::Integer)
+    if isassigned(fitting.cache, idx)
+        return fitting.cache[idx]
     end
-    fit_cache = PolyFit.FitCache(cache.fitter, @view cache.potential.data[:, :, :, idx])
-    cache.cache[idx] = fit_cache
+    fit_cache = PolyFit.FitCache(fitting.fitter, @view fitting.potential.data[:, :, :, idx])
+    fitting.cache[idx] = fit_cache
     return fit_cache
 end
 
-Base.get(cache::Fitting, name::AbstractString) =
-    get(cache, cache.potential.electrode_index[name])
+Base.get(fitting::Fitting, name::AbstractString) =
+    get(fitting, fitting.potential.electrode_index[name])
 
-Base.get(cache::Fitting, electrode::Union{AbstractString,Integer},
+Base.get(fitting::Fitting, electrode::Union{AbstractString,Integer},
          pos::NTuple{3}; fit_center=pos) =
-             get(get(cache, electrode), _inv3(pos); fit_center=_inv3(fit_center))
+             get(get(fitting, electrode), _inv3(pos); fit_center=_inv3(fit_center))
 
-get_single(cache::Fitting, electrode::Union{AbstractString,Integer},
+get_single(fitting::Fitting, electrode::Union{AbstractString,Integer},
            pos::NTuple{3}, orders::NTuple{3}; fit_center=pos) =
-               get_single(get(cache, electrode), _inv3(pos), _inv3(orders);
+               get_single(get(fitting, electrode), _inv3(pos), _inv3(orders);
                           fit_center=_inv3(fit_center))
 
-function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3})
+function get_electrodes(fitting::Fitting, electrodes_voltages, pos::NTuple{3})
     local res
     for (ele, v) in electrodes_voltages
-        term = get(cache, ele, pos) * v
+        term = get(fitting, ele, pos) * v
         if !@isdefined(res)
             res = term
         else
@@ -319,17 +319,17 @@ function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3})
         end
     end
     if !@isdefined(res)
-        return PolyFit.Result{3}(cache.fitter.orders,
-                                 zeros(prod(cache.fitter.orders .+ 1)))
+        return PolyFit.Result{3}(fitting.fitter.orders,
+                                 zeros(prod(fitting.fitter.orders .+ 1)))
     end
     return res
 end
 
-function get_electrodes(cache::Fitting, electrodes_voltages, pos::NTuple{3},
+function get_electrodes(fitting::Fitting, electrodes_voltages, pos::NTuple{3},
                         orders::NTuple{3})
     res = 0.0
     for (ele, v) in electrodes_voltages
-        res += get_single(cache, ele, pos, orders) * v
+        res += get_single(fitting, ele, pos, orders) * v
     end
     return res
 end
