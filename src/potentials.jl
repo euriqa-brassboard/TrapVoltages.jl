@@ -299,7 +299,7 @@ struct Fitting
     cache::Vector{PolyFit.FitCache{3,_subarray_T}}
     # orders and sizes are in x, y, z order, potential in z, y, x order
     function Fitting(potential::Potential; orders=(4, 2, 2), sizes)
-        fitter = PolyFit.Fitter(_inv3(orders...)..., sizes=_inv3(sizes))
+        fitter = PolyFit.Fitter(_inv3(orders)..., sizes=_inv3(sizes))
         return new(fitter, potential,
                    Vector{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
     end
