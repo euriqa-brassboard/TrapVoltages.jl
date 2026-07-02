@@ -235,6 +235,20 @@ function solve_compensate(fitting::Potentials.Fitting, pos::NTuple{3};
     return ele_select, res
 end
 
+function solve_target(fitting::Potentials.Fitting, pos::NTuple{3}, target;
+                      mask::Val{Terms}=TermMask(), minmax=true, kws...) where Terms
+    nterms = count(Terms)
+    if size(target, 1) != nterms
+        throw(ArgumentError("Target size mismatch with term number"))
+    end
+    ele_select, coefficient = compensate_terms(fitting, pos; mask=mask, kws...)
+    if minmax
+        return ele_select, Optimizers.optimize_minmax(coefficient, target)
+    else
+        return ele_select, coefficient \ target
+    end
+end
+
 function get_data_line(potential, mapfile::MapFile, electrodes, term)
     nelectrodes = length(mapfile.names)
     values = Vector{Float64}(undef, nelectrodes)
