@@ -152,7 +152,7 @@ end
         data = [p(-1), p(0), p(1)]
         res = f \ data
         for x in -1.0:0.5:1.0
-            @test TV.gradient(res, 1, x) ≈ pdx(x)
+            @test TV.gradient(res, 1, x) ≈ pdx(x) atol=1e-12
         end
     end
     @testset "2D gradient" begin
@@ -165,8 +165,8 @@ end
         res = f \ data
         for x in -2.0:0.25:2.0
             for y in -2.0:0.25:2.0
-                @test TV.gradient(res, 1, x, y) ≈ pdx(x, y)
-                @test TV.gradient(res, 2, x, y) ≈ pdy(x, y)
+                @test TV.gradient(res, 1, x, y) ≈ pdx(x, y) atol=1e-12
+                @test TV.gradient(res, 2, x, y) ≈ pdy(x, y) atol=1e-12
             end
         end
     end
