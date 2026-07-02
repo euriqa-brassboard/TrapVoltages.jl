@@ -3,6 +3,7 @@
 module PolyFit
 
 import ..gradient, ..get_single
+using LinearAlgebra
 
 # N dimensional polynomial fitting
 """
@@ -14,7 +15,7 @@ for fitting a N dimentional array of certain size.
 struct Fitter{N}
     orders::NTuple{N,Int}
     sizes::NTuple{N,Int}
-    coefficient::Matrix{Float64}
+    coefficient::QRPivoted{Float64, Matrix{Float64}, Vector{Float64}, Vector{Int64}}
     scales::Vector{Float64}
     # center is the origin of the polynomial in index (1-based)
     function Fitter(orders::Vararg{Integer,N};
@@ -46,7 +47,7 @@ struct Fitter{N}
                 coefficient[ipos, iorder] = prod(pos.^order) * scales[iorder]
             end
         end
-        return new{N}(orders, sizes, coefficient, scales)
+        return new{N}(orders, sizes, qr!(coefficient, ColumnNorm()), scales)
     end
 end
 
