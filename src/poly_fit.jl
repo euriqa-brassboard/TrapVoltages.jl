@@ -5,6 +5,8 @@ module PolyFit
 import ..gradient, ..get_single
 using LinearAlgebra
 
+using Base.Threads
+
 # N dimensional polynomial fitting
 """
     Fitter{N}
@@ -176,21 +178,24 @@ end
 struct FitCache{N,A<:AbstractArray{T,N} where T}
     fitter::Fitter{N}
     data::A
-    cache::Array{Result{N},N}
+    sizes::NTuple{N,Int}
+    cache::AtomicMemory{Result{N}}
 end
 
 function FitCache(fitter::Fitter{N}, data::A) where (A<:AbstractArray{T,N} where T) where N
-    cache = Array{Result{N},N}(undef, size(data) .- fitter.sizes .+ 1)
-    return FitCache{N,A}(fitter, data, cache)
+    sizes = size(data) .- fitter.sizes .+ 1
+    cache = AtomicMemory{Result{N}}(undef, prod(sizes))
+    return FitCache{N,A}(fitter, data, sizes, cache)
 end
 
 function get_internal(cache::FitCache{N}, idx::NTuple{N,Integer}) where N
-    if isassigned(cache.cache, idx...)
-        return cache.cache[idx...]
+    lidx = LinearIndices(cache.sizes)[idx...]
+    if isassigned(cache.cache, lidx)
+        return @atomic :acquire cache.cache[lidx]
     end
     data = @view cache.data[((:).(idx, idx .+ cache.fitter.sizes .- 1))...]
     res = cache.fitter \ data
-    cache.cache[idx...] = res
+    @atomic :release cache.cache[lidx] = res
     return res
 end
 

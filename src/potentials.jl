@@ -5,6 +5,7 @@ module Potentials
 import ..PolyFit, ..get_single, ..TrapDesc
 
 using DelimitedFiles
+using Base.Threads
 
 export import_pillbox_v0, import_pillbox_v1, import_pillbox_64
 
@@ -296,21 +297,22 @@ _inv3((x, y, z)) = (z, y, x)
 struct Fitting
     fitter::PolyFit.Fitter{3}
     potential::Potential
-    cache::Vector{PolyFit.FitCache{3,_subarray_T}}
+    cache::AtomicMemory{PolyFit.FitCache{3,_subarray_T}}
     # orders and sizes are in x, y, z order, potential in z, y, x order
     function Fitting(potential::Potential; orders=(4, 2, 2), sizes)
         fitter = PolyFit.Fitter(_inv3(orders)..., sizes=_inv3(sizes))
         return new(fitter, potential,
-                   Vector{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
+                   AtomicMemory{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
     end
 end
 
 function Base.get(fitting::Fitting, idx::Integer)
     if isassigned(fitting.cache, idx)
-        return fitting.cache[idx]
+        return @atomic :acquire fitting.cache[idx]
     end
     fit_cache = PolyFit.FitCache(fitting.fitter, @view fitting.potential.data[:, :, :, idx])
-    fitting.cache[idx] = fit_cache
+    cache_ary = fitting.cache
+    @atomic :release cache_ary[idx] = fit_cache
     return fit_cache
 end
 
