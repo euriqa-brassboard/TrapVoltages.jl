@@ -1,6 +1,7 @@
 #
 
-using TrapVoltages: Solutions, CenterTracker
+using TrapVoltages: Solutions, CenterTracker, PolyFit as PF
+using TrapVoltages.Units: TrapUnits
 
 using Test
 using HDF5
@@ -69,4 +70,92 @@ end
     CenterTracker("hoa", 3)
     CenterTracker("hoa", 4)
     CenterTracker("hoa", 5)
+end
+
+macro test_term(term)
+    term_v = Symbol("$(term)_v")
+    quote
+        if $(esc(term))
+            @test $(esc(:(terms.$term))) ≈ $(esc(term_v))
+        else
+            @test !hasproperty($(esc(:terms)), $(QuoteNode(term)))
+        end
+    end
+end
+
+@testset "Compensation Terms" begin
+    fit = PF.Result{3}((2, 2, 4), zeros(3 * 3 * 5))
+    for (dx, dy, dz, xy, yz, zx, z2,
+         x2, x3, x4, x2z) in Iterators.product((false, true), (false, true),
+                                               (false, true), (false, true),
+                                               (false, true), (false, true),
+                                               (false, true), (false, true),
+                                               (false, true), (false, true),
+                                               (false, true))
+        mask = Solutions.TermMask(dx=dx, dy=dy, dz=dz, xy=xy, yz=yz, zx=zx, z2=z2,
+                                  x2=x2, x3=x3, x4=x4, x2z=x2z)
+
+        nterms = dx + dy + dz + xy + yz + zx + z2 + x2 + x3 + x4 + x2z
+        if 3 < nterms < 9
+            # Limit compilation
+            continue
+        end
+
+        for _ in 1:10
+            unit = TrapUnits(rand() + 1, rand() + 1)
+            stride = (rand() + 0.5, rand() + 0.5, rand() + 0.5)
+
+            fit.coefficient .= rand.()
+            dx_v = rand()
+            dy_v = rand()
+            dz_v = rand()
+            xy_v = rand()
+            yz_v = rand()
+            zx_v = rand()
+            z2_v = rand()
+            x2_v = rand()
+            x3_v = rand()
+            x4_v = rand()
+            x2z_v = rand()
+
+            x2y2z2_v = rand()
+            real_x2 = x2y2z2_v + x2_v / 2
+            real_y2 = x2y2z2_v - x2_v / 4 - z2_v / 2
+            real_z2 = x2y2z2_v - x2_v / 4 + z2_v / 2
+
+            fit[0, 0, 1] = dx_v * stride[1] / 1e6
+            fit[0, 1, 0] = dy_v * stride[2] / 1e6
+            fit[1, 0, 0] = dz_v * stride[3] / 1e6
+
+            fit[0, 1, 1] = xy_v * stride[1] * stride[2] * unit.V_unit / unit.l_unit_um^2
+            fit[1, 1, 0] = yz_v * stride[2] * stride[3] * unit.V_unit / unit.l_unit_um^2
+            fit[1, 0, 1] = zx_v * stride[3] * stride[1] * unit.V_unit / unit.l_unit_um^2
+
+            fit[0, 0, 2] = real_x2 * stride[1]^2 * unit.V_unit / unit.l_unit_um^2
+            fit[0, 2, 0] = real_y2 * stride[2]^2 * unit.V_unit / unit.l_unit_um^2
+            fit[2, 0, 0] = real_z2 * stride[3]^2 * unit.V_unit / unit.l_unit_um^2
+
+            fit[0, 0, 3] = x3_v / 6 * stride[1]^3 * unit.V_unit / unit.l_unit_um^3
+            fit[0, 0, 4] = x4_v / 24 * stride[1]^4 * unit.V_unit / unit.l_unit_um^4
+
+            fit[1, 0, 2] = x2z_v / 2 * stride[1]^2 * stride[3] * unit.V_unit / unit.l_unit_um^3
+
+            terms = Solutions.compensate_terms(fit, stride, unit=unit, mask=mask)
+
+            @test_term dx
+            @test_term dy
+            @test_term dz
+
+            @test_term xy
+            @test_term yz
+            @test_term zx
+
+            @test_term z2
+            @test_term x2
+            @test_term x3
+            @test_term x4
+
+            @test_term x2z
+        end
+    end
 end
