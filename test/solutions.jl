@@ -281,6 +281,11 @@ end
                                                   min_num=20, minmax=false)
             @test eles6 == eles
             @test coeffs2 * terms6 ≈ tgt6 atol=1e-6 rtol=1e-6
+
+            @test_throws ArgumentError Solutions.solve_target(fitting, center_idx,
+                                                              zeros(nterms + 1);
+                                                              unit=unit, mask=mask,
+                                                              min_num=20)
         end
     end
 end
