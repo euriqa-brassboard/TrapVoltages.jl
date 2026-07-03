@@ -152,6 +152,12 @@ end
 end
 
 function test_trap_potential(trap; nxyz)
+    trap_desc = TrapDesc(trap)
+    q1_id = trap_desc.ele_indices["Q1"]
+    q2_id = trap_desc.ele_indices["Q2"]
+    l1_id = trap_desc.ele_indices["L1"]
+    l2_id = trap_desc.ele_indices["L2"]
+
     mktempdir() do d
         for (ver, f_wr, f_im) in (("v0", write_v0, Potentials.import_pillbox_v0),
                                   ("v1", write_v1, Potentials.import_pillbox_v1),
@@ -173,7 +179,7 @@ function test_trap_potential(trap; nxyz)
                 @test all(p.origin .≈ origin .* 1000)
                 @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
                 @test p.data == data
-                @test p.trap === TrapDesc(trap)
+                @test p.trap === trap_desc
 
                 for i in 1:10
                     v = Potentials.x_index_to_axis(p, i)
@@ -201,6 +207,39 @@ function test_trap_potential(trap; nxyz)
                 return f_wr(fh, electrodes - 1; nxyz=nxyz, stride=stride, origin=origin)
             end
             @test_throws ArgumentError f_im(file_m1, trap=trap)
+
+            p1 = f_im(file, trap=trap, aliases=Dict("Q1"=>"GND"))
+            @test p1.electrodes == electrodes - 1
+            @test p1.electrode_names[1] == ["GND", "Q1"]
+            @test p1.nx == nxyz[1]
+            @test p1.ny == nxyz[2]
+            @test p1.nz == nxyz[3]
+            @test size(p1.data) == (p1.nz, p1.ny, p1.nx, electrodes - 1)
+            @test @view(p1.data[:, :, :, 1]) ≈ @view(data[:, :, :, 1]) .+ @view(data[:, :, :, q1_id])
+            @test @view(p1.data[:, :, :, 2:q1_id - 1]) ≈ @view(data[:, :, :, 2:q1_id - 1])
+            @test @view(p1.data[:, :, :, q1_id:end]) ≈ @view(data[:, :, :, q1_id + 1:end])
+
+            p2 = f_im(file, trap=trap, aliases=Dict(q1_id=>1))
+            @test p2.electrodes == electrodes - 1
+            @test p2.electrode_names[1] == ["GND", "Q1"]
+            @test p2.nx == nxyz[1]
+            @test p2.ny == nxyz[2]
+            @test p2.nz == nxyz[3]
+            @test p2.data == p1.data
+
+            p3 = f_im(file, trap=trap, electrode_names=[["Q1", "Q2"], ["L1", "L2"]])
+            @test p3.electrodes == 2
+            @test p3.nx == nxyz[1]
+            @test p3.ny == nxyz[2]
+            @test p3.nz == nxyz[3]
+            @test @view(p3.data[:, :, :, 1]) == @view(data[:, :, :, q1_id]) .+ @view(data[:, :, :, q2_id])
+            @test @view(p3.data[:, :, :, 2]) == @view(data[:, :, :, l1_id]) .+ @view(data[:, :, :, l2_id])
+
+            @test_throws ArgumentError f_im(file, trap=trap, aliases=Dict("Q1"=>"GND", "Q2"=>"Q1"))
+            @test_throws ArgumentError f_im(file, trap=trap, aliases=Dict("Q2"=>"Q1", "Q1"=>"GND"))
+            @test_throws ArgumentError f_im(file, trap=trap, aliases=Dict(q1_id=>1, q2_id=>q1_id))
+            @test_throws ArgumentError f_im(file, trap=trap, aliases=Dict("Q1"=>"GND"),
+                                            electrode_names=[["Q1", "Q2"], ["L1", "L2"]])
         end
     end
 end

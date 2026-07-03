@@ -180,7 +180,9 @@ function _aliases_to_names(aliases::AbstractDict{Int,Int}, trap::TrapDesc)
     @assert new_electrodes == id
     for (k, v) in aliases
         # The user should connect directly to the final one
-        @assert !(v in keys(aliases))
+        if v in keys(aliases)
+            throw(ArgumentError("Electrode alias cannot contain alias chain"))
+        end
         id = id_map[v]
         @assert id != 0
         name = trap.ele_names[k]
@@ -197,7 +199,9 @@ end
 
 function _get_electrode_names(aliases, electrode_names, trap::TrapDesc)
     if electrode_names !== nothing
-        @assert aliases === nothing
+        if aliases !== nothing
+            throw(ArgumentError("At most one of electrode name array or alias map can be probided"))
+        end
         return electrode_names
     end
     if aliases === nothing
