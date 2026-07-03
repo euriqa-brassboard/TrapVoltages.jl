@@ -365,6 +365,15 @@ end
             end
         end
     end
+
+    fit0 = Potentials.get_electrodes(fitting, [], (0.5, -0.4, -1.2))
+    for xo in 0:4
+        for yo in 0:2
+            for zo in 0:2
+                @test fit0[zo, yo, xo] == 0
+            end
+        end
+    end
 end
 
 @testset "Short map" begin
