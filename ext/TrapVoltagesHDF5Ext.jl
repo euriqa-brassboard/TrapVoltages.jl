@@ -16,7 +16,7 @@ end
 
 function Solutions.CenterTracker(name::AbstractString, region=1)
     return h5open(_get_path(name)) do fh
-        return Solutions.CenterTracker(read(fh["$region"], "zy_index"))
+        return Solutions.CenterTracker(read(fh["$region"], "yz_index"))
     end
 end
 

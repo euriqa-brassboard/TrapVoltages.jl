@@ -13,19 +13,19 @@ function compute_trap(file, trap, region=1)
     potential = Potentials.import_pillbox_64(file, trap=trap)
     # RF is electrode 2 (ground is 1)
     rf_data = potential.data[:, :, :, 2]
-    zy_fitter = PolyFit.Fitter(4, 4, sizes=(5, 5))
+    yz_fitter = PolyFit.Fitter(4, 4, sizes=(5, 5))
     rf_y2s = Vector{Float64}(undef, potential.nx)
     rf_yzs = Vector{Float64}(undef, potential.nx)
     rf_z2s = Vector{Float64}(undef, potential.nx)
     ystride_m = potential.stride[2] / 1000
-    zstride_m = potential.stride[1] / 1000
+    zstride_m = potential.stride[3] / 1000
     for xidx in 1:potential.nx
         yidx, zidx = get(centers, xidx)
-        fit_cache = PolyFit.FitCache(zy_fitter, @view rf_data[:, :, xidx])
-        fit = get(fit_cache, (zidx, yidx))
-        y2 = fit[0, 2] / ystride_m^2
+        fit_cache = PolyFit.FitCache(yz_fitter, @view rf_data[xidx, :, :])
+        fit = get(fit_cache, (yidx, zidx))
+        y2 = fit[2, 0] / ystride_m^2
         yz = fit[1, 1] / zstride_m / ystride_m / 2
-        z2 = fit[2, 0] / zstride_m^2
+        z2 = fit[0, 2] / zstride_m^2
         rf_y2s[xidx] = y2 # 1/m^2
         rf_yzs[xidx] = yz # 1/m^2
         rf_z2s[xidx] = z2 # 1/m^2

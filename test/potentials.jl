@@ -170,6 +170,7 @@ function test_trap_potential(trap; nxyz)
             data = open(file, "w") do fh
                 return f_wr(fh, electrodes; nxyz=nxyz, stride=stride, origin=origin)
             end
+            data = permutedims(data, (3, 2, 1, 4))
             for p in [f_im(file, trap=trap), open(fh->f_im(fh, trap=trap), file)]
                 @test p.electrodes == electrodes
                 @test p.nx == nxyz[1]
@@ -177,7 +178,7 @@ function test_trap_potential(trap; nxyz)
                 @test p.nz == nxyz[3]
                 @test all(p.stride .≈ stride .* 1000)
                 @test all(p.origin .≈ origin .* 1000)
-                @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
+                @test size(p.data) == (p.nx, p.ny, p.nz, electrodes)
                 @test p.data == data
                 @test p.trap === trap_desc
 
@@ -217,7 +218,7 @@ function test_trap_potential(trap; nxyz)
             @test p1.nx == nxyz[1]
             @test p1.ny == nxyz[2]
             @test p1.nz == nxyz[3]
-            @test size(p1.data) == (p1.nz, p1.ny, p1.nx, electrodes - 1)
+            @test size(p1.data) == (p1.nx, p1.ny, p1.nz, electrodes - 1)
             @test @view(p1.data[:, :, :, 1]) ≈ @view(data[:, :, :, 1]) .+ @view(data[:, :, :, q1_id])
             @test @view(p1.data[:, :, :, 2:q1_id - 1]) ≈ @view(data[:, :, :, 2:q1_id - 1])
             @test @view(p1.data[:, :, :, q1_id:end]) ≈ @view(data[:, :, :, q1_id + 1:end])
@@ -268,9 +269,9 @@ end
     for x in 1:nx
         for y in 1:ny
             for z in 1:nz
-                p.data[z, y, x, q1_id] = (x - 0.5)^2 - (y + 0.4)^2 + (z + 1.2) - (x - 0.5)^2 * (z + 1.2) - 0.2 * (x - 0.5)^3 + 0.2
-                p.data[z, y, x, q2_id] = -(x + 0.7)^2 + 0.5 * (y - 1.3)^2 - (z + 2.1) + (x + 0.7) * (z + 2.1)^2 * (y - 1.3) + (x + 0.7)^4
-                p.data[z, y, x, q3_id] = 0.1 * (x - 0.5)^2 - (y + 0.4) + (z + 1.2)^2 - (x - 0.5)^2 * (z + 1.2)^2 - 0.2 * (x - 0.5)^4 - 0.2
+                p.data[x, y, z, q1_id] = (x - 0.5)^2 - (y + 0.4)^2 + (z + 1.2) - (x - 0.5)^2 * (z + 1.2) - 0.2 * (x - 0.5)^3 + 0.2
+                p.data[x, y, z, q2_id] = -(x + 0.7)^2 + 0.5 * (y - 1.3)^2 - (z + 2.1) + (x + 0.7) * (z + 2.1)^2 * (y - 1.3) + (x + 0.7)^4
+                p.data[x, y, z, q3_id] = 0.1 * (x - 0.5)^2 - (y + 0.4) + (z + 1.2)^2 - (x - 0.5)^2 * (z + 1.2)^2 - 0.2 * (x - 0.5)^4 - 0.2
             end
         end
     end
@@ -283,7 +284,7 @@ end
     for xo in 0:4
         for yo in 0:2
             for zo in 0:2
-                c = fit1[zo, yo, xo]
+                c = fit1[xo, yo, zo]
                 @test Potentials.get_single(fitting, "Q1", (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c atol=1e-10
                 if (xo, yo, zo) == (2, 0, 0)
                     @test c ≈ 1
@@ -308,7 +309,7 @@ end
     for xo in 0:4
         for yo in 0:2
             for zo in 0:2
-                c = fit2[zo, yo, xo]
+                c = fit2[xo, yo, zo]
                 @test Potentials.get_single(fitting, q2_id, (-0.7, 1.3, -2.1), (xo, yo, zo)) ≈ c atol=1e-10
                 if (xo, yo, zo) == (2, 0, 0)
                     @test c ≈ -1
@@ -331,7 +332,7 @@ end
     for xo in 0:4
         for yo in 0:2
             for zo in 0:2
-                c = fit3[zo, yo, xo]
+                c = fit3[xo, yo, zo]
                 @test Potentials.get_single(fitting, "Q3", (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c atol=1e-10
                 if (xo, yo, zo) == (2, 0, 0)
                     @test c ≈ 0.1
@@ -356,10 +357,10 @@ end
     for xo in 0:4
         for yo in 0:2
             for zo in 0:2
-                c1 = fit1[zo, yo, xo]
-                c3 = fit3[zo, yo, xo]
-                c4 = fit4[zo, yo, xo]
-                @test c4 ≈ -2 * fit1[zo, yo, xo] + 0.5 * fit3[zo, yo, xo] atol=1e-10
+                c1 = fit1[xo, yo, zo]
+                c3 = fit3[xo, yo, zo]
+                c4 = fit4[xo, yo, zo]
+                @test c4 ≈ -2 * fit1[xo, yo, zo] + 0.5 * fit3[xo, yo, zo] atol=1e-10
                 @test Potentials.get_electrodes(fitting, Dict("Q1"=>-2, "Q3"=>0.5),
                                                 (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c4 atol=1e-10
             end
@@ -370,7 +371,7 @@ end
     for xo in 0:4
         for yo in 0:2
             for zo in 0:2
-                @test fit0[zo, yo, xo] == 0
+                @test fit0[xo, yo, zo] == 0
             end
         end
     end

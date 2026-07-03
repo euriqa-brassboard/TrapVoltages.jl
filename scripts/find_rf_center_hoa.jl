@@ -14,8 +14,8 @@ function compute_center(file, trap)
     centers = Solutions.find_all_flat_points(@view(potential.data[:, :, :, 2]))
     centers_um = similar(centers)
     for i in 1:potential.nx
-        centers_um[i, 1] = Potentials.z_index_to_axis(potential, centers[i, 1]) * 1000
-        centers_um[i, 2] = Potentials.y_index_to_axis(potential, centers[i, 2]) * 1000
+        centers_um[i, 1] = Potentials.y_index_to_axis(potential, centers[i, 1]) * 1000
+        centers_um[i, 2] = Potentials.z_index_to_axis(potential, centers[i, 2]) * 1000
     end
     return centers, centers_um
 end
@@ -27,7 +27,7 @@ h5open("$(data_prefix).h5", "w") do fh
         g = create_group(fh, "$i")
         centers, centers_um = compute_center("$(potential_prefix)_$(suffix).bin",
                                              "hoa")
-        g["zy_index"] = centers
-        g["zy_um"] = centers_um
+        g["yz_index"] = centers
+        g["yz_um"] = centers_um
     end
 end

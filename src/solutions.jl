@@ -26,34 +26,34 @@ end
 
 function find_all_flat_points(all_data::A; init=ntuple(i->(size(all_data, i) + 1) / 2, Val(N - 1))) where (A<:AbstractArray{T,N} where T) where N
 
-    npoints = size(all_data, N)
+    npoints = size(all_data, 1)
     all_res = Matrix{Float64}(undef, npoints, N - 1)
 
     for i in 1:npoints
-        init = find_flat_point(@view(all_data[:, :, i]), init=init)
+        init = find_flat_point(@view(all_data[i, :, :]), init=init)
         all_res[i, :] .= init
     end
     return all_res
 end
 
 struct CenterTracker
-    zy_index::Matrix{Float64}
-    CenterTracker(zy_index::AbstractMatrix) = new(zy_index)
+    yz_index::Matrix{Float64}
+    CenterTracker(yz_index::AbstractMatrix) = new(yz_index)
 end
 
 function Base.get(tracker::CenterTracker, xidx)
     # return (y, z)
-    nx = size(tracker.zy_index, 1)
+    nx = size(tracker.yz_index, 1)
     lb_idx = min(max(floor(Int, xidx), 1), nx)
     ub_idx = min(max(ceil(Int, xidx), 1), nx)
-    y_lb = tracker.zy_index[lb_idx, 2]
-    z_lb = tracker.zy_index[lb_idx, 1]
+    y_lb = tracker.yz_index[lb_idx, 1]
+    z_lb = tracker.yz_index[lb_idx, 2]
     if lb_idx == ub_idx
         return y_lb, z_lb
     end
     @assert ub_idx == lb_idx + 1
-    y_ub = tracker.zy_index[ub_idx, 2]
-    z_ub = tracker.zy_index[ub_idx, 1]
+    y_ub = tracker.yz_index[ub_idx, 1]
+    z_ub = tracker.yz_index[ub_idx, 2]
     c_ub = xidx - lb_idx
     c_lb = ub_idx - xidx
     return y_lb * c_lb + y_ub * c_ub, z_lb * c_lb + z_ub * c_ub
@@ -98,20 +98,20 @@ function compensate_terms(fit::PolyFit.Result{3}, stride;
     scale_4 = (unit.l_unit_um^4 / unit.V_unit)
 
     if Terms.dx
-        res = (; res..., dx=fit[0, 0, 1] / stride[1] * scale_1)
+        res = (; res..., dx=fit[1, 0, 0] / stride[1] * scale_1)
     end
     if Terms.dy
         res = (; res..., dy=fit[0, 1, 0] / stride[2] * scale_1)
     end
     if Terms.dz
-        res = (; res..., dz=fit[1, 0, 0] / stride[3] * scale_1)
+        res = (; res..., dz=fit[0, 0, 1] / stride[3] * scale_1)
     end
 
     if Terms.xy
-        res = (; res..., xy=fit[0, 1, 1] / stride[1] / stride[2] * scale_2)
+        res = (; res..., xy=fit[1, 1, 0] / stride[1] / stride[2] * scale_2)
     end
     if Terms.yz
-        res = (; res..., yz=fit[1, 1, 0] / stride[2] / stride[3] * scale_2)
+        res = (; res..., yz=fit[0, 1, 1] / stride[2] / stride[3] * scale_2)
     end
     if Terms.zx
         res = (; res..., zx=fit[1, 0, 1] / stride[3] / stride[1] * scale_2)
@@ -130,24 +130,24 @@ function compensate_terms(fit::PolyFit.Result{3}, stride;
     # xy/yz/zx terms.
     if Terms.x2 || Terms.z2
         y2 = fit[0, 2, 0] / stride[2]^2 * 2
-        z2 = fit[2, 0, 0] / stride[3]^2 * 2
+        z2 = fit[0, 0, 2] / stride[3]^2 * 2
     end
 
     if Terms.z2
         res = (; res..., z2=(z2 - y2) / 2 * scale_2)
     end
     if Terms.x2
-        x2 = fit[0, 0, 2] / stride[1]^2 * 2
+        x2 = fit[2, 0, 0] / stride[1]^2 * 2
         res = (; res..., x2=(2 * x2 - y2 - z2) / 3 * scale_2)
     end
     if Terms.x3
-        res = (; res..., x3=fit[0, 0, 3] / stride[1]^3 * 6 * scale_3)
+        res = (; res..., x3=fit[3, 0, 0] / stride[1]^3 * 6 * scale_3)
     end
     if Terms.x4
-        res = (; res..., x4=fit[0, 0, 4] / stride[1]^4 * 24 * scale_4)
+        res = (; res..., x4=fit[4, 0, 0] / stride[1]^4 * 24 * scale_4)
     end
     if Terms.x2z
-        res = (; res..., x2z=fit[1, 0, 2] / stride[1]^2 / stride[3] * 2 * scale_3)
+        res = (; res..., x2z=fit[2, 0, 1] / stride[1]^2 / stride[3] * 2 * scale_3)
     end
 
     return res

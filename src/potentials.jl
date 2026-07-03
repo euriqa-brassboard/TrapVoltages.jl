@@ -112,6 +112,8 @@ end
 
 export Potential
 
+const _data_type = typeof(PermutedDimsArray(zeros(0, 0, 0, 0), (3, 2, 1, 4)))
+
 struct Potential
     electrodes::Int
     nx::Int
@@ -119,7 +121,7 @@ struct Potential
     nz::Int
     stride::NTuple{3,Float64}
     origin::NTuple{3,Float64}
-    data::Array{Float64,4}
+    data::_data_type
     electrode_index::Dict{String,Int}
     electrode_names::Vector{Vector{String}}
     trap::TrapDesc
@@ -149,7 +151,7 @@ function Potential(raw::RawPotential, electrode_names::AbstractVector,
         @assert !first
     end
     return Potential(new_electrodes, raw.nx, raw.ny, raw.nz,
-                     raw.stride, raw.origin, data,
+                     raw.stride, raw.origin, PermutedDimsArray(data, (3, 2, 1, 4)),
                      electrode_index, electrode_names, trap)
 end
 
@@ -294,9 +296,7 @@ function get_potential(potential::Potential, electrodes_voltages)
     return res
 end
 
-const _subarray_T = typeof(@view zeros(0, 0, 0, 1)[:, :, :, 1])
-
-_inv3((x, y, z)) = (z, y, x)
+const _subarray_T = typeof(@view(PermutedDimsArray(zeros(0, 0, 0, 1), (3, 2, 1, 4))[:, :, :, 1]))
 
 struct Fitting
     fitter::PolyFit.Fitter{3}
@@ -304,7 +304,7 @@ struct Fitting
     cache::AtomicMemory{PolyFit.FitCache{3,_subarray_T}}
     # orders and sizes are in x, y, z order, potential in z, y, x order
     function Fitting(potential::Potential; orders=(4, 2, 2), sizes)
-        fitter = PolyFit.Fitter(_inv3(orders)..., sizes=_inv3(sizes))
+        fitter = PolyFit.Fitter(orders..., sizes=sizes)
         return new(fitter, potential,
                    AtomicMemory{PolyFit.FitCache{3,_subarray_T}}(undef, potential.electrodes))
     end
@@ -325,12 +325,12 @@ Base.get(fitting::Fitting, name::AbstractString) =
 
 Base.get(fitting::Fitting, electrode::Union{AbstractString,Integer},
          pos::NTuple{3}; fit_center=pos) =
-             get(get(fitting, electrode), _inv3(pos); fit_center=_inv3(fit_center))
+             get(get(fitting, electrode), pos; fit_center=fit_center)
 
 get_single(fitting::Fitting, electrode::Union{AbstractString,Integer},
            pos::NTuple{3}, orders::NTuple{3}; fit_center=pos) =
-               get_single(get(fitting, electrode), _inv3(pos), _inv3(orders);
-                          fit_center=_inv3(fit_center))
+               get_single(get(fitting, electrode), pos, orders;
+                          fit_center=fit_center)
 
 function get_electrodes(fitting::Fitting, electrodes_voltages, pos::NTuple{3})
     local res
