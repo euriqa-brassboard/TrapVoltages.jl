@@ -366,3 +366,15 @@ end
         end
     end
 end
+
+@testset "Short map" begin
+    mktempdir() do d
+        f = joinpath(d, "short.csv")
+        open(f, "w") do io
+            println(io, "A,B")
+            println(io, "C,B")
+            println(io, "XYZ,X")
+        end
+        @test Potentials.load_short_map(f) == Dict("A"=>"B", "C"=>"B", "XYZ"=>"X")
+    end
+end
