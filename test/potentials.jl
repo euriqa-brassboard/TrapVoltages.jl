@@ -194,6 +194,9 @@ function test_trap_potential(trap; nxyz)
                     @test v ≈ (i - 1) * stride[3] * 1000 + origin[3] * 1000
                     @test Potentials.z_axis_to_index(p, v) ≈ i
                 end
+
+                pot1 = Potentials.get_potential(p, Dict("Q1"=>0.2, l2_id=>-0.1))
+                @test pot1 ≈ @view(data[:, :, :, q1_id]) .* 0.2 .+ @view(data[:, :, :, l2_id]) .* -0.1
             end
 
             file_p1 = joinpath(d, "data_p1_$(ver).bin")
