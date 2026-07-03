@@ -252,3 +252,117 @@ end
     test_trap_potential("phoenix", nxyz=(2, 3, 7))
     test_trap_potential("peregrine", nxyz=(2, 1, 7))
 end
+
+@testset "Fitting" begin
+    trap = TrapDesc("phoenix")
+    q1_id = trap.ele_indices["Q1"]
+    q2_id = trap.ele_indices["Q2"]
+    q3_id = trap.ele_indices["Q3"]
+
+    io = IOBuffer()
+    nx, ny, nz = (20, 10, 7)
+    write_64(io, length(trap.ele_names), nxyz=(nx, ny, nz),
+             stride=(1e-3, 1e-3, 1e-3), origin=(-10e-3, -5e-3, 20e-3))
+    seek(io, 0)
+    p = Potentials.import_pillbox_64(io, trap=trap)
+    for x in 1:nx
+        for y in 1:ny
+            for z in 1:nz
+                p.data[z, y, x, q1_id] = (x - 0.5)^2 - (y + 0.4)^2 + (z + 1.2) - (x - 0.5)^2 * (z + 1.2) - 0.2 * (x - 0.5)^3 + 0.2
+                p.data[z, y, x, q2_id] = -(x + 0.7)^2 + 0.5 * (y - 1.3)^2 - (z + 2.1) + (x + 0.7) * (z + 2.1)^2 * (y - 1.3) + (x + 0.7)^4
+                p.data[z, y, x, q3_id] = 0.1 * (x - 0.5)^2 - (y + 0.4) + (z + 1.2)^2 - (x - 0.5)^2 * (z + 1.2)^2 - 0.2 * (x - 0.5)^4 - 0.2
+            end
+        end
+    end
+
+    fitting = Potentials.Fitting(p, orders=(4, 2, 2), sizes=(6, 4, 4))
+    @test get(fitting, q1_id) === get(fitting, "Q1")
+    @test get(fitting, "Q2") === get(fitting, "Q2")
+
+    fit1 = get(fitting, q1_id, (0.5, -0.4, -1.2))
+    for xo in 0:4
+        for yo in 0:2
+            for zo in 0:2
+                c = fit1[zo, yo, xo]
+                @test Potentials.get_single(fitting, "Q1", (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c atol=1e-10
+                if (xo, yo, zo) == (2, 0, 0)
+                    @test c ≈ 1
+                elseif (xo, yo, zo) == (0, 2, 0)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (0, 0, 1)
+                    @test c ≈ 1
+                elseif (xo, yo, zo) == (2, 0, 1)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (3, 0, 0)
+                    @test c ≈ -0.2
+                elseif (xo, yo, zo) == (0, 0, 0)
+                    @test c ≈ 0.2
+                else
+                    @test c ≈ 0 atol=1e-9
+                end
+            end
+        end
+    end
+
+    fit2 = get(fitting, "Q2", (-0.7, 1.3, -2.1))
+    for xo in 0:4
+        for yo in 0:2
+            for zo in 0:2
+                c = fit2[zo, yo, xo]
+                @test Potentials.get_single(fitting, q2_id, (-0.7, 1.3, -2.1), (xo, yo, zo)) ≈ c atol=1e-10
+                if (xo, yo, zo) == (2, 0, 0)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (0, 2, 0)
+                    @test c ≈ 0.5
+                elseif (xo, yo, zo) == (0, 0, 1)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (1, 1, 2)
+                    @test c ≈ 1
+                elseif (xo, yo, zo) == (4, 0, 0)
+                    @test c ≈ 1
+                else
+                    @test c ≈ 0 atol=1e-9
+                end
+            end
+        end
+    end
+
+    fit3 = get(fitting, q3_id, (0.5, -0.4, -1.2))
+    for xo in 0:4
+        for yo in 0:2
+            for zo in 0:2
+                c = fit3[zo, yo, xo]
+                @test Potentials.get_single(fitting, "Q3", (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c atol=1e-10
+                if (xo, yo, zo) == (2, 0, 0)
+                    @test c ≈ 0.1
+                elseif (xo, yo, zo) == (0, 1, 0)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (0, 0, 2)
+                    @test c ≈ 1
+                elseif (xo, yo, zo) == (2, 0, 2)
+                    @test c ≈ -1
+                elseif (xo, yo, zo) == (4, 0, 0)
+                    @test c ≈ -0.2
+                elseif (xo, yo, zo) == (0, 0, 0)
+                    @test c ≈ -0.2
+                else
+                    @test c ≈ 0 atol=1e-9
+                end
+            end
+        end
+    end
+
+    fit4 = Potentials.get_electrodes(fitting, [q3_id=>0.5, ("Q1", -2)], (0.5, -0.4, -1.2))
+    for xo in 0:4
+        for yo in 0:2
+            for zo in 0:2
+                c1 = fit1[zo, yo, xo]
+                c3 = fit3[zo, yo, xo]
+                c4 = fit4[zo, yo, xo]
+                @test c4 ≈ -2 * fit1[zo, yo, xo] + 0.5 * fit3[zo, yo, xo] atol=1e-10
+                @test Potentials.get_electrodes(fitting, Dict("Q1"=>-2, "Q3"=>0.5),
+                                                (0.5, -0.4, -1.2), (xo, yo, zo)) ≈ c4 atol=1e-10
+            end
+        end
+    end
+end
