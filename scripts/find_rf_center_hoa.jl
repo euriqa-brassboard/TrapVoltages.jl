@@ -14,8 +14,8 @@ function compute_center(file, trap)
     centers = Solutions.find_all_flat_points(@view(potential.data[:, :, :, 2]))
     centers_um = similar(centers)
     for i in 1:potential.nx
-        centers_um[i, 1] = Potentials.y_index_to_axis(potential, centers[i, 1]) * 1000
-        centers_um[i, 2] = Potentials.z_index_to_axis(potential, centers[i, 2]) * 1000
+        centers_um[i, 1] = Potentials.y_index_to_axis(potential, centers[i, 1])
+        centers_um[i, 2] = Potentials.z_index_to_axis(potential, centers[i, 2])
     end
     return centers, centers_um
 end

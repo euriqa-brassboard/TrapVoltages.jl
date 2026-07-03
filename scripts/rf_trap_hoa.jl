@@ -17,8 +17,8 @@ function compute_trap(file, trap, region=1)
     rf_y2s = Vector{Float64}(undef, potential.nx)
     rf_yzs = Vector{Float64}(undef, potential.nx)
     rf_z2s = Vector{Float64}(undef, potential.nx)
-    ystride_m = potential.stride[2] / 1000
-    zstride_m = potential.stride[3] / 1000
+    ystride_m = potential.stride_um[2] / 1e6
+    zstride_m = potential.stride_um[3] / 1e6
     for xidx in 1:potential.nx
         yidx, zidx = get(centers, xidx)
         fit_cache = PolyFit.FitCache(yz_fitter, @view rf_data[xidx, :, :])
@@ -30,7 +30,7 @@ function compute_trap(file, trap, region=1)
         rf_yzs[xidx] = yz # 1/m^2
         rf_z2s[xidx] = z2 # 1/m^2
     end
-    xs_um = Potentials.x_index_to_axis.(Ref(potential), 1:potential.nx) .* 1000
+    xs_um = Potentials.x_index_to_axis.(Ref(potential), 1:potential.nx)
     return xs_um, rf_y2s, rf_yzs, rf_z2s
 end
 

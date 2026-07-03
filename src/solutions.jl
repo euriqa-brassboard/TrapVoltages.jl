@@ -83,10 +83,10 @@ Base.count(mask::TermMask) = (mask.dx + mask.dy + mask.dz + mask.xy + mask.yz + 
                  x2=true, x3=true, x4=true, x2z=false) =
                      Val(_term_mask(dx, dy, dz, xy, yz, zx, z2, x2, x3, x4, x2z))
 
-function compensate_terms(fit::PolyFit.Result{3}, stride;
+function compensate_terms(fit::PolyFit.Result{3}, stride_um;
                           unit::TrapUnits, mask::Val{Terms}=TermMask()) where Terms
     # axis order of fitting result is z, y, x
-    # axis order of stride is x, y, z
+    # axis order of stride_um is x, y, z
     res = (;)
 
     # Expected units
@@ -98,23 +98,23 @@ function compensate_terms(fit::PolyFit.Result{3}, stride;
     scale_4 = (unit.l_unit_um^4 / unit.V_unit)
 
     if Terms.dx
-        res = (; res..., dx=fit[1, 0, 0] / stride[1] * scale_1)
+        res = (; res..., dx=fit[1, 0, 0] / stride_um[1] * scale_1)
     end
     if Terms.dy
-        res = (; res..., dy=fit[0, 1, 0] / stride[2] * scale_1)
+        res = (; res..., dy=fit[0, 1, 0] / stride_um[2] * scale_1)
     end
     if Terms.dz
-        res = (; res..., dz=fit[0, 0, 1] / stride[3] * scale_1)
+        res = (; res..., dz=fit[0, 0, 1] / stride_um[3] * scale_1)
     end
 
     if Terms.xy
-        res = (; res..., xy=fit[1, 1, 0] / stride[1] / stride[2] * scale_2)
+        res = (; res..., xy=fit[1, 1, 0] / stride_um[1] / stride_um[2] * scale_2)
     end
     if Terms.yz
-        res = (; res..., yz=fit[0, 1, 1] / stride[2] / stride[3] * scale_2)
+        res = (; res..., yz=fit[0, 1, 1] / stride_um[2] / stride_um[3] * scale_2)
     end
     if Terms.zx
-        res = (; res..., zx=fit[1, 0, 1] / stride[3] / stride[1] * scale_2)
+        res = (; res..., zx=fit[1, 0, 1] / stride_um[3] / stride_um[1] * scale_2)
     end
 
     # The two legal quadratic terms are `x^2 - (y^2 + z^2) / 2` and `z^2 - y^2`
@@ -129,25 +129,25 @@ function compensate_terms(fit::PolyFit.Result{3}, stride;
     # This makes sure that, e.g., the z^2 term is a direct rotation of the
     # xy/yz/zx terms.
     if Terms.x2 || Terms.z2
-        y2 = fit[0, 2, 0] / stride[2]^2 * 2
-        z2 = fit[0, 0, 2] / stride[3]^2 * 2
+        y2 = fit[0, 2, 0] / stride_um[2]^2 * 2
+        z2 = fit[0, 0, 2] / stride_um[3]^2 * 2
     end
 
     if Terms.z2
         res = (; res..., z2=(z2 - y2) / 2 * scale_2)
     end
     if Terms.x2
-        x2 = fit[2, 0, 0] / stride[1]^2 * 2
+        x2 = fit[2, 0, 0] / stride_um[1]^2 * 2
         res = (; res..., x2=(2 * x2 - y2 - z2) / 3 * scale_2)
     end
     if Terms.x3
-        res = (; res..., x3=fit[3, 0, 0] / stride[1]^3 * 6 * scale_3)
+        res = (; res..., x3=fit[3, 0, 0] / stride_um[1]^3 * 6 * scale_3)
     end
     if Terms.x4
-        res = (; res..., x4=fit[4, 0, 0] / stride[1]^4 * 24 * scale_4)
+        res = (; res..., x4=fit[4, 0, 0] / stride_um[1]^4 * 24 * scale_4)
     end
     if Terms.x2z
-        res = (; res..., x2z=fit[2, 0, 1] / stride[1]^2 / stride[3] * 2 * scale_3)
+        res = (; res..., x2z=fit[2, 0, 1] / stride_um[1]^2 / stride_um[3] * 2 * scale_3)
     end
 
     return res
@@ -158,14 +158,13 @@ function compensate_terms(fitting::Potentials.Fitting, pos::NTuple{3};
                           min_num=20, min_dist=0, region=1, ignore_id=(1,)) where Terms
     # pos is in xyz index
     potential = fitting.potential
-    x_coord = Potentials.x_index_to_axis(potential, pos[1]) .* 1000
+    x_um = Potentials.x_index_to_axis(potential, pos[1])
     ele_select = find_electrodes(potential.trap, potential.electrode_index,
-                                 x_coord, min_num=min_num, min_dist=min_dist,
+                                 x_um, min_num=min_num, min_dist=min_dist,
                                  region=1, ignore_id=ignore_id)
     ele_select = sort!(collect(ele_select))
     fits = [get(fitting, e, pos) for e in ele_select]
-    # Change stride to um in unit
-    stride_um = potential.stride .* 1000
+    stride_um = potential.stride_um
     nfits = length(fits)
     nterms = count(Terms)
     coefficient = Matrix{Float64}(undef, nterms, nfits)

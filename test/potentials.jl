@@ -107,22 +107,22 @@ function test_raw_potential(electrodes; nxyz)
             @test p.nx == nxyz[1]
             @test p.ny == nxyz[2]
             @test p.nz == nxyz[3]
-            @test all(p.stride .≈ stride .* 1000)
-            @test all(p.origin .≈ origin .* 1000)
+            @test all(p.stride_um .≈ stride .* 1e6)
+            @test all(p.origin_um .≈ origin .* 1e6)
             @test size(p.data) == (p.nz, p.ny, p.nx, electrodes)
             @test p.data == data
 
             for i in 1:10
                 v = Potentials.x_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[1] * 1000 + origin[1] * 1000
+                @test v ≈ (i - 1) * stride[1] * 1e6 + origin[1] * 1e6
                 @test Potentials.x_axis_to_index(p, v) ≈ i
 
                 v = Potentials.y_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[2] * 1000 + origin[2] * 1000
+                @test v ≈ (i - 1) * stride[2] * 1e6 + origin[2] * 1e6
                 @test Potentials.y_axis_to_index(p, v) ≈ i
 
                 v = Potentials.z_index_to_axis(p, i)
-                @test v ≈ (i - 1) * stride[3] * 1000 + origin[3] * 1000
+                @test v ≈ (i - 1) * stride[3] * 1e6 + origin[3] * 1e6
                 @test Potentials.z_axis_to_index(p, v) ≈ i
             end
 
@@ -176,23 +176,23 @@ function test_trap_potential(trap; nxyz)
                 @test p.nx == nxyz[1]
                 @test p.ny == nxyz[2]
                 @test p.nz == nxyz[3]
-                @test all(p.stride .≈ stride .* 1000)
-                @test all(p.origin .≈ origin .* 1000)
+                @test all(p.stride_um .≈ stride .* 1e6)
+                @test all(p.origin_um .≈ origin .* 1e6)
                 @test size(p.data) == (p.nx, p.ny, p.nz, electrodes)
                 @test p.data == data
                 @test p.trap === trap_desc
 
                 for i in 1:10
                     v = Potentials.x_index_to_axis(p, i)
-                    @test v ≈ (i - 1) * stride[1] * 1000 + origin[1] * 1000
+                    @test v ≈ (i - 1) * stride[1] * 1e6 + origin[1] * 1e6
                     @test Potentials.x_axis_to_index(p, v) ≈ i
 
                     v = Potentials.y_index_to_axis(p, i)
-                    @test v ≈ (i - 1) * stride[2] * 1000 + origin[2] * 1000
+                    @test v ≈ (i - 1) * stride[2] * 1e6 + origin[2] * 1e6
                     @test Potentials.y_axis_to_index(p, v) ≈ i
 
                     v = Potentials.z_index_to_axis(p, i)
-                    @test v ≈ (i - 1) * stride[3] * 1000 + origin[3] * 1000
+                    @test v ≈ (i - 1) * stride[3] * 1e6 + origin[3] * 1e6
                     @test Potentials.z_axis_to_index(p, v) ≈ i
                 end
 

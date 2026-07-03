@@ -16,8 +16,8 @@ struct RawPotential
     nx::Int
     ny::Int
     nz::Int
-    stride::NTuple{3,Float64}
-    origin::NTuple{3,Float64}
+    stride_um::NTuple{3,Float64}
+    origin_um::NTuple{3,Float64}
     data::Array{Float64,4}
 end
 
@@ -28,8 +28,8 @@ function import_pillbox_v0_raw(fh)
     ny = Int(read(fh, Int32))
     nz = Int(read(fh, Int32))
     read(fh, Int32) # vsets
-    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    stride_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
     # I have no idea what's stored in these
     read(fh, Int32)
     read(fh, Int32)
@@ -42,7 +42,7 @@ function import_pillbox_v0_raw(fh)
     end
     data = Array{Float64}(undef, nz, ny, nx, electrodes)
     copyto!(data, reinterpret(Float64, databytes))
-    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
+    return RawPotential(electrodes, nx, ny, nz, stride_um, origin_um, data)
 end
 
 function import_pillbox_v1_raw(fh)
@@ -56,8 +56,8 @@ function import_pillbox_v1_raw(fh)
     for _ in 1:6
         read(fh, Float64)
     end
-    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    stride_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
     # I have no idea what's stored in these
     read(fh, Int32)
     read(fh, Int32)
@@ -70,7 +70,7 @@ function import_pillbox_v1_raw(fh)
     end
     data = Array{Float64}(undef, nz, ny, nx, electrodes)
     copyto!(data, reinterpret(Float64, databytes))
-    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
+    return RawPotential(electrodes, nx, ny, nz, stride_um, origin_um, data)
 end
 
 function import_pillbox_64_raw(fh)
@@ -84,8 +84,8 @@ function import_pillbox_64_raw(fh)
     for _ in 1:6
         read(fh, Float64)
     end
-    stride = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
-    origin = 1000 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    stride_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
+    origin_um = 1e6 .* (read(fh, Float64), read(fh, Float64), read(fh, Float64)) # Use mm instead of m
     # I have no idea what's stored in these
     read(fh, Int64)
     read(fh, Int64)
@@ -98,15 +98,15 @@ function import_pillbox_64_raw(fh)
     end
     data = Array{Float64}(undef, nz, ny, nx, electrodes)
     copyto!(data, reinterpret(Float64, databytes))
-    return RawPotential(electrodes, nx, ny, nz, stride, origin, data)
+    return RawPotential(electrodes, nx, ny, nz, stride_um, origin_um, data)
 end
 
 for (name, i) in ((:x, 1), (:y, 2), (:z, 3))
     @eval begin
         export $(Symbol(name, "_index_to_axis"))
-        $(Symbol(name, "_index_to_axis"))(sol::RawPotential, i) = (i - 1) * sol.stride[$i] + sol.origin[$i]
+        $(Symbol(name, "_index_to_axis"))(sol::RawPotential, i) = (i - 1) * sol.stride_um[$i] + sol.origin_um[$i]
         export $(Symbol(name, "_axis_to_index"))
-        $(Symbol(name, "_axis_to_index"))(sol::RawPotential, a) = (a - sol.origin[$i]) / sol.stride[$i] + 1
+        $(Symbol(name, "_axis_to_index"))(sol::RawPotential, a) = (a - sol.origin_um[$i]) / sol.stride_um[$i] + 1
     end
 end
 
@@ -119,8 +119,8 @@ struct Potential
     nx::Int
     ny::Int
     nz::Int
-    stride::NTuple{3,Float64}
-    origin::NTuple{3,Float64}
+    stride_um::NTuple{3,Float64}
+    origin_um::NTuple{3,Float64}
     data::_data_type
     electrode_index::Dict{String,Int}
     electrode_names::Vector{Vector{String}}
@@ -151,16 +151,16 @@ function Potential(raw::RawPotential, electrode_names::AbstractVector,
         @assert !first
     end
     return Potential(new_electrodes, raw.nx, raw.ny, raw.nz,
-                     raw.stride, raw.origin, PermutedDimsArray(data, (3, 2, 1, 4)),
+                     raw.stride_um, raw.origin_um, PermutedDimsArray(data, (3, 2, 1, 4)),
                      electrode_index, electrode_names, trap)
 end
 
 for (name, i) in ((:x, 1), (:y, 2), (:z, 3))
     @eval begin
         export $(Symbol(name, "_index_to_axis"))
-        $(Symbol(name, "_index_to_axis"))(sol::Potential, i) = (i - 1) * sol.stride[$i] + sol.origin[$i]
+        $(Symbol(name, "_index_to_axis"))(sol::Potential, i) = (i - 1) * sol.stride_um[$i] + sol.origin_um[$i]
         export $(Symbol(name, "_axis_to_index"))
-        $(Symbol(name, "_axis_to_index"))(sol::Potential, a) = (a - sol.origin[$i]) / sol.stride[$i] + 1
+        $(Symbol(name, "_axis_to_index"))(sol::Potential, a) = (a - sol.origin_um[$i]) / sol.stride_um[$i] + 1
     end
 end
 
@@ -233,8 +233,8 @@ The data is returned in the header and data fields.
 header contains the fields 'electrodes' for the number of potentials
 for different electrodes,
 'nx', 'ny', 'nz' are the number of samples in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
+'origin_um' is one end point of the 3D grid,
+'stride_um' is the stepsize in the 3 dimensions.
 """
 function import_pillbox_v0(file; aliases=nothing, electrode_names=nothing, trap)
     return _import_internal(file, import_pillbox_v0_raw, aliases, electrode_names, trap)
@@ -252,8 +252,8 @@ The data is returned in the header and data fields.
 header contains the fields 'electrodes' for the number of potentials
 for different electrodes, 'nx', 'ny', 'nz' are the number of samples
 in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
+'origin_um' is one end point of the 3D grid,
+'stride_um' is the stepsize in the 3 dimensions.
 """
 function import_pillbox_v1(file; aliases=nothing, electrode_names=nothing, trap)
     return _import_internal(file, import_pillbox_v1_raw, aliases, electrode_names, trap)
@@ -271,8 +271,8 @@ The data is returned in the header and data fields.
 header contains the fields 'electrodes' for the number of potentials
 for different electrodes, 'nx', 'ny', 'nz' are the number of samples
 in x-, y-, and z- direction.
-'origin' is one end point of the 3D grid,
-'stride' is the stepsize in the 3 dimensions.
+'origin_um' is one end point of the 3D grid,
+'stride_um' is the stepsize in the 3 dimensions.
 """
 function import_pillbox_64(file; aliases=nothing, electrode_names=nothing, trap)
     return _import_internal(file, import_pillbox_64_raw, aliases, electrode_names, trap)
