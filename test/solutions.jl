@@ -1,7 +1,7 @@
 #
 
-using TrapVoltages: Solutions, CenterTracker, PolyFit as PF, TrapDesc, Potentials, Traps
-using TrapVoltages.Units: TrapUnits
+using TrapVoltages: Solutions, CenterTracker, PolyFit as PF,
+TrapDesc, Potentials, Traps, TrapUnits
 
 using Test
 using LinearAlgebra

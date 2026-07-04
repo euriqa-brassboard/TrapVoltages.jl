@@ -7,6 +7,8 @@ using LinearAlgebra
 
 using Base.Threads
 
+public Fitter, Result, shift, FitCache
+
 # N dimensional polynomial fitting
 """
     Fitter{N}

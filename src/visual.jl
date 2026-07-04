@@ -4,6 +4,9 @@ module Visual
 
 import ..load_optdep, ..TrapDesc
 
+export SVGInfo
+public set_title!, add_circle!, add_line!, fill_electrodes!
+
 mutable struct Title
     title::String
     const attrs::Dict{String,String}

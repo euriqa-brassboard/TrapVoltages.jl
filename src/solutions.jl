@@ -5,11 +5,14 @@ Tools to find voltage solutions (in terms of voltages on the electrodes)
 """
 module Solutions
 
-import ..PolyFit, ..gradient, ..Units.TrapUnits, ..Potentials, ..Optimizers, ..load_optdep
-using ..Traps, ..Units
+import ..PolyFit, ..gradient, ..TrapUnits, ..Potentials, ..optimize_minmax,
+    ..load_optdep, ..find_electrodes
 
 using NLsolve
 using LinearAlgebra
+
+export find_flat_point, find_all_flat_point, CenterTracker, TermMask,
+    compensate_terms, solve_compensate, solve_target
 
 function find_flat_point(data::A; init=ntuple(i->(size(data, i) + 1) / 2, Val(N))) where (A<:AbstractArray{T,N} where T) where N
     fitter = PolyFit.Fitter(ntuple(i->3, Val(N))...)
@@ -202,7 +205,7 @@ function solve_compensate(fitting::Potentials.Fitting, pos::NTuple{3};
     nterms = count(Terms)
     M = Matrix(I, nterms, nterms)
     if minmax
-        X = Optimizers.optimize_minmax(coefficient, M)
+        X = optimize_minmax(coefficient, M)
     else
         X = coefficient \ M
     end
@@ -263,7 +266,7 @@ function solve_target(fitting::Potentials.Fitting, pos::NTuple{3}, target;
     end
     ele_select, coefficient = compensate_terms(fitting, pos; mask=mask, kws...)
     if minmax
-        return ele_select, Optimizers.optimize_minmax(coefficient, target)
+        return ele_select, optimize_minmax(coefficient, target)
     else
         return ele_select, coefficient \ target
     end

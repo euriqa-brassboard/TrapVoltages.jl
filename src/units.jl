@@ -2,6 +2,8 @@
 
 module Units
 
+public TrapUnits, MHz_unit
+
 struct TrapUnits
     l_unit::Float64
     V_unit::Float64

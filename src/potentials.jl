@@ -7,9 +7,9 @@ import ..PolyFit, ..get_single, ..TrapDesc
 using DelimitedFiles
 using Base.Threads
 
-export import_pillbox_v0, import_pillbox_v1, import_pillbox_64
+export Potential, import_pillbox_v0, import_pillbox_v1, import_pillbox_64
 
-public FitCache, get_multi_electrodes
+public get_potential, Fitting, get_electrodes, load_short_map
 
 struct RawPotential
     electrodes::Int
@@ -109,8 +109,6 @@ for (name, i) in ((:x, 1), (:y, 2), (:z, 3))
         $(Symbol(name, "_axis_to_index"))(sol::RawPotential, a) = (a - sol.origin_um[$i]) / sol.stride_um[$i] + 1
     end
 end
-
-export Potential
 
 const _data_type = typeof(PermutedDimsArray(zeros(0, 0, 0, 0), (3, 2, 1, 4)))
 
