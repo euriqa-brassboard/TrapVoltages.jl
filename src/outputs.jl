@@ -18,6 +18,15 @@ function with_write(cb, file::AbstractString)
     open(cb, file, "w")
 end
 
+@inline function load_file(file::AbstractString, args...; kws...)
+    open(file, "r") do fh
+        _load_file(fh, args...; kws...)
+    end
+end
+@inline function load_file(file, args...; kws...)
+    _load_file(file, args...; kws...)
+end
+
 function str_float(v)
     if isinteger(v)
         return string(Int(v))
@@ -37,7 +46,7 @@ struct MapFile
     MapFile(names=String[]) = new(names)
 end
 
-function load_file(file, ::Type{MapFile})
+function _load_file(file, ::Type{MapFile})
     res = MapFile()
     for line in eachline_nocomment(file)
         push!(res.names, split(line, '\t', limit=2)[1])
@@ -117,7 +126,7 @@ struct CompensationFile
     term_values::Vector{Vector{Float64}}
 end
 
-function load_file(file, ::Type{CompensationFile}; mapfile=nothing)
+function _load_file(file, ::Type{CompensationFile}; mapfile=nothing)
     # Assume the eachline iterator is stateful
     term_names = String[]
     lines = eachline_nocomment(file)
@@ -174,7 +183,7 @@ struct TransferFile
     line_values::Vector{Vector{Float64}}
 end
 
-function load_file(file, ::Type{TransferFile}; mapfile=nothing)
+function _load_file(file, ::Type{TransferFile}; mapfile=nothing)
     # Assume the eachline iterator is stateful
     lines = eachline_nocomment(file)
     names = split(first(lines), '\t')
