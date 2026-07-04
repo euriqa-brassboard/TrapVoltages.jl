@@ -5,7 +5,7 @@ Tools to find voltage solutions (in terms of voltages on the electrodes)
 """
 module Solutions
 
-import ..PolyFit, ..gradient, ..Units.TrapUnits, ..Potentials, ..Optimizers
+import ..PolyFit, ..gradient, ..Units.TrapUnits, ..Potentials, ..Optimizers, ..load_optdep
 using ..Traps, ..Units
 
 using NLsolve
@@ -54,13 +54,11 @@ end
 function _center_tracker_hdf5 end
 
 const _hdf5_init = Ref(false)
+const _hdf5_pkgid = Base.PkgId(Base.UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), "HDF5")
 
 function CenterTracker(name::AbstractString, region=1)
     path = _get_rf_center_path(name)
-    if !_hdf5_init[]
-        Base.require(Base.PkgId(Base.UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), "HDF5"))
-    end
-    _hdf5_init[] = true
+    load_optdep(_hdf5_pkgid, _hdf5_init, "loading CenterTracker from file")
     return invokelatest(_center_tracker_hdf5, path, "$region")::CenterTracker
 end
 

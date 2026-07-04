@@ -1,5 +1,7 @@
 module TrapVoltages
 
+include("utils.jl")
+
 function gradient end
 function get_single end
 
