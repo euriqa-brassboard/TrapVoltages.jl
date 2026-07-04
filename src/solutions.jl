@@ -272,8 +272,4 @@ function solve_target(fitting::Potentials.Fitting, pos::NTuple{3}, target;
     end
 end
 
-function __init__()
-    _hdf5_init[] = false
-end
-
 end

@@ -136,8 +136,4 @@ function fill_electrodes!(info::SVGInfo, values; cmap=default_cmap)
     end
 end
 
-function __init__()
-    _ezxml_init[] = false
-end
-
 end
