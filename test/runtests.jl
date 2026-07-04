@@ -19,7 +19,8 @@ pmap(["solutions",
       "poly_fit",
       "trap",
       "units",
-      "utils"]) do file
+      "utils",
+      "visual"]) do file
     println("Start testing $file")
     @eval module $(Symbol("Test_$(file)_mod"))
     include($(joinpath(@__DIR__, "$(file).jl")))

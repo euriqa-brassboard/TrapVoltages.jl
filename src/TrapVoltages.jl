@@ -23,4 +23,6 @@ include("solutions.jl")
 using .Solutions: CenterTracker
 public CenterTracker
 
+include("visual.jl")
+
 end # module TrapVoltages
