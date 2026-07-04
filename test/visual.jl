@@ -94,7 +94,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     l1 = Visual.add_line!(v1, [-10, 0, 10], [0.4, 1.1, -0.1])
     l1["id"] = "line-124u3"
     @test l1["id"] == "line-124u3"
-    l2 = Visual.add_line!(v1, [-10, 0, 10, 2], [0.4, 0.12, 1.1, -0.1])
+    l2 = Visual.add_line!(v1, [-10, 0, 1, 2, 3, 4], [0.4, 0.12, 0.12, 0.12, -0.1, -0.1])
     l2["id"] = "line2-lkajsdf"
     @test l2["id"] == "line2-lkajsdf"
     io = IOBuffer()
@@ -103,5 +103,5 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     sl1 = findfirst("//svg:polyline[@id='line-124u3']", s, svg_ns)
     @test sl1["points"] == "296.785,84.88 297.524,62.2 298.262,100"
     sl2 = findfirst("//svg:polyline[@id='line2-lkajsdf']", s, svg_ns)
-    @test sl2["points"] == "296.785,84.88 297.524,95.464 298.262,62.2 297.671,100"
+    @test sl2["points"] == "296.785,84.88 297.524,95.464 297.671,95.464 297.745,100 297.819,100"
 end
