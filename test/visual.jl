@@ -12,7 +12,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
 
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = takestring!(io)
+    s = String(take!(io))
     @test !contains(s, "Title")
 
     t1 = Visual.set_title!(v1, "AAA BBB CCC DDD")
@@ -20,7 +20,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     @test t1["data-x-attr-111"] == "aabbccasxkjfs"
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = root(parsexml(takestring!(io)))
+    s = root(parsexml(String(take!(io))))
     st1 = findfirst("//svg:text[@id='Title']", s, svg_ns)
     @test st1 !== nothing
     @test st1.content == "AAA BBB CCC DDD"
@@ -29,7 +29,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     @test Visual.set_title!(v1, "") === t1
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = takestring!(io)
+    s = String(take!(io))
     @test !contains(s, "Title")
     @test !contains(s, "AAA BBB CCC DDD")
     @test !contains(s, "data-x-attr-111=\"aabbccasxkjfs\"")
@@ -44,7 +44,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     Visual.fill_electrodes!(v1, Dict("Q1"=>"red", "Q2"=>0.0, "Q3"=>(-2, 5, 300), "Q4"=>(-0.1, 1.1, 0.9), "Q5"=>-1.1, "Q6"=>1.1, "Q7"=>0.7, "Q8"=>-0.9, "S1"=>"blue"))
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = root(parsexml(takestring!(io)))
+    s = root(parsexml(String(take!(io))))
     for n in ele_nodes(s, "Q1")
         @test contains(n["style"], "fill:red")
     end
@@ -81,7 +81,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     @test c2["id"] == "circle2-akljafs"
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = root(parsexml(takestring!(io)))
+    s = root(parsexml(String(take!(io))))
     sc1 = findfirst("//svg:circle[@id='circle1-12345']", s, svg_ns)
     @test sc1["cx"] == "297.524"
     @test sc1["cy"] == "38.803"
@@ -99,7 +99,7 @@ const svg_ns = ["svg" => "http://www.w3.org/2000/svg"]
     @test l2["id"] == "line2-lkajsdf"
     io = IOBuffer()
     show(io, MIME"image/svg+xml"(), v1)
-    s = root(parsexml(takestring!(io)))
+    s = root(parsexml(String(take!(io))))
     sl1 = findfirst("//svg:polyline[@id='line-124u3']", s, svg_ns)
     @test sl1["points"] == "296.785,84.88 297.524,62.2 298.262,100"
     sl2 = findfirst("//svg:polyline[@id='line2-lkajsdf']", s, svg_ns)
