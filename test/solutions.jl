@@ -4,7 +4,6 @@ using TrapVoltages: Solutions, CenterTracker, PolyFit as PF, TrapDesc, Potential
 using TrapVoltages.Units: TrapUnits
 
 using Test
-using HDF5
 using LinearAlgebra
 
 @testset "find_flat_point" begin

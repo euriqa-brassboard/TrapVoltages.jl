@@ -41,6 +41,29 @@ struct CenterTracker
     CenterTracker(yz_index::AbstractMatrix) = new(yz_index)
 end
 
+function _get_rf_center_path(name)
+    if !('/' in name)
+        p = joinpath(@__DIR__, "../data", name, "rf_center.h5")
+        if isfile(p)
+            return p
+        end
+    end
+    return name
+end
+
+function _center_tracker_hdf5 end
+
+const _hdf5_init = Ref(false)
+
+function CenterTracker(name::AbstractString, region=1)
+    path = _get_rf_center_path(name)
+    if !_hdf5_init[]
+        Base.require(Base.PkgId(Base.UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), "HDF5"))
+    end
+    _hdf5_init[] = true
+    return invokelatest(_center_tracker_hdf5, path, region)::CenterTracker
+end
+
 function Base.get(tracker::CenterTracker, xidx)
     # return (y, z)
     nx = size(tracker.yz_index, 1)
@@ -246,6 +269,10 @@ function solve_target(fitting::Potentials.Fitting, pos::NTuple{3}, target;
     else
         return ele_select, coefficient \ target
     end
+end
+
+function __init__()
+    _hdf5_init[] = false
 end
 
 end
