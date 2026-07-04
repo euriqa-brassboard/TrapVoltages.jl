@@ -6,7 +6,7 @@ Tools to find voltage solutions (in terms of voltages on the electrodes)
 module Solutions
 
 import ..PolyFit, ..gradient, ..Units.TrapUnits, ..Potentials, ..Optimizers
-using ..Traps, ..Outputs, ..Units
+using ..Traps, ..Units
 
 using NLsolve
 using LinearAlgebra
@@ -246,83 +246,6 @@ function solve_target(fitting::Potentials.Fitting, pos::NTuple{3}, target;
     else
         return ele_select, coefficient \ target
     end
-end
-
-function get_data_line(potential, mapfile::MapFile, electrodes, term)
-    nelectrodes = length(mapfile.names)
-    values = Vector{Float64}(undef, nelectrodes)
-    term_map = Dict(zip(electrodes, term))
-    for i in 1:nelectrodes
-        id = get(potential.electrode_index, mapfile.names[i], -1)
-        values[i] = get(term_map, id, 0.0)
-    end
-    return values
-end
-
-function Outputs.CompensationFile(potential::Potentials.Potential, mapfile::MapFile,
-                                  electrodes, terms; unit=Units.euriqa)
-    term_names = String[]
-    term_values = Vector{Float64}[]
-    nelectrodes = length(mapfile.names)
-    # For DX, DY, DZ the EURIQA frontend expects a different unit in the config file
-    # compared to the UI...
-    # DX
-    push!(term_names, "DX")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.dx) .* 1000)
-    # DY
-    push!(term_names, "DY")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.dy) .* 1000)
-    # DZ
-    push!(term_names, "DZ")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.dz) .* 1000)
-    # QZY
-    push!(term_names, "QZY")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.yz))
-    # QZZ
-    push!(term_names, "QZZ")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.z2))
-    # QXZ
-    push!(term_names, "QXZ")
-    if !hasproperty(terms, :zx)
-        push!(term_values, zeros(nelectrodes))
-    else
-        push!(term_values, get_data_line(potential, mapfile, electrodes, terms.zx))
-    end
-    # X1
-    # DX is in V/m, X1 is in 525 uV / 2.74 um
-    push!(term_names, "X1")
-    push!(term_values, get_data_line(potential, mapfile, electrodes,
-                                     terms.dx .* (unit.V_unit_uV / unit.l_unit_um)))
-    # X2
-    push!(term_names, "X2")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.x2))
-    # X3
-    push!(term_names, "X3")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.x3))
-    # X4
-    push!(term_names, "X4")
-    push!(term_values, get_data_line(potential, mapfile, electrodes, terms.x4))
-    if hasproperty(terms, :x2z)
-        push!(term_names, "X2Z")
-        push!(term_values, get_data_line(potential, mapfile, electrodes, terms.z2x))
-    end
-    # JunctionCenter
-    push!(term_names, "JunctionCenter")
-    push!(term_values, zeros(nelectrodes))
-    # JunctionTransition
-    push!(term_names, "JunctionTransition")
-    push!(term_values, zeros(nelectrodes))
-    # LoadInners
-    push!(term_names, "LoadInners")
-    push!(term_values, zeros(nelectrodes))
-    # LoadOuters
-    push!(term_names, "LoadOuters")
-    push!(term_values, zeros(nelectrodes))
-    # Eject
-    push!(term_names, "Eject")
-    push!(term_values, zeros(nelectrodes))
-
-    return CompensationFile(mapfile, term_names, term_values)
 end
 
 end

@@ -1,6 +1,7 @@
 #
 
 using TrapVoltages: Potentials, TrapDesc
+using TrapVoltages.Outputs
 
 using Test
 
@@ -387,4 +388,38 @@ end
         end
         @test Potentials.load_short_map(f) == Dict("A"=>"B", "C"=>"B", "XYZ"=>"X")
     end
+end
+
+@testset "LineMap" begin
+    trap = TrapDesc("phoenix")
+    l1_id = trap.ele_indices["L1"]
+    l2_id = trap.ele_indices["L2"]
+    l3_id = trap.ele_indices["L3"]
+    l4_id = trap.ele_indices["L4"]
+    q1_id = trap.ele_indices["Q1"]
+    q2_id = trap.ele_indices["Q2"]
+    q3_id = trap.ele_indices["Q3"]
+    q4_id = trap.ele_indices["Q4"]
+
+    io = IOBuffer()
+    write_64(io, length(trap.ele_names), nxyz=(20, 10, 7),
+             stride=(1e-3, 1e-3, 1e-3), origin=(-10e-3, -5e-3, 20e-3))
+    seek(io, 0)
+    p = Potentials.import_pillbox_64(io, trap=trap)
+
+    lm = LineMap(p, MapFile(trap.ele_names), [l1_id, "L2", [l3_id, q3_id],
+                                              ["Q1", "Q2"], ["Q4", l4_id]])
+    expected = zeros(length(trap.ele_names))
+    expected[l1_id] = 1
+    expected[l2_id] = 2
+    expected[l3_id] = 3
+    expected[q3_id] = 3
+    expected[q1_id] = 4
+    expected[q2_id] = 4
+    expected[q4_id] = 5
+    expected[l4_id] = 5
+    @test lm.electrode_map == expected
+
+    @test_throws TypeError LineMap(p, MapFile(trap.ele_names), [1.2])
+    @test_throws TypeError LineMap(p, MapFile(trap.ele_names), [()])
 end

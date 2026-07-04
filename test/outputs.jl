@@ -93,3 +93,15 @@ end
                                              TransferFile)
     end
 end
+
+@testset "LineMap" begin
+    lm = LineMap([1, 2, -1, 3, 5, 4])
+    res = map_line(lm, [6, 2, 3, -10, 3.5])
+    @test res == [6, 2, 0, 3, 3.5, -10]
+    buff = ones(6)
+    res = map_line(lm, [6, 2, 3, -10, 3.5]; buff=buff)
+    @test res === buff
+    @test res == [6, 2, 0, 3, 3.5, -10]
+    @test_throws ArgumentError map_line(lm, [6, 2, 3, -10, 3.5]; buff=zeros(5))
+    @test_throws ArgumentError map_line(lm, [6, 2, 3, -10, 3.5]; buff=zeros(7))
+end

@@ -5,8 +5,10 @@ Functions for processing the final output files for artiq
 """
 module Outputs
 
-export MapFile, CompensationFile, TransferFile,
-    load_file, write_file
+import ..Potentials.Potential
+
+export MapFile, CompensationFile, TransferFile, LineMap,
+    load_file, write_file, map_line
 
 function with_write(cb, file::IO)
     cb(file)
@@ -59,6 +61,54 @@ function Base.Dict(mapfile::MapFile)
         res[mapfile.names[i]] = i
     end
     return res
+end
+
+struct LineMap
+    electrode_map::Vector{Int}
+end
+
+function _assign_index!(electrode_map, potential, name_map, @nospecialize(ele), i)
+    if isa(ele, Integer)
+        _assign_index!(electrode_map, potential, name_map,
+                       potential.electrode_names[ele], i)
+    elseif isa(ele, AbstractString)
+        electrode_map[name_map[ele]] = i
+    elseif isa(ele, AbstractVector)
+        for e in ele
+            _assign_index!(electrode_map, potential, name_map, e, i)
+        end
+    else
+        throw(TypeError(:LineMap, "Unknown electrode ID type",
+                        Union{Integer,AbstractString,AbstractVector}, ele))
+    end
+end
+
+function LineMap(potential::Potential, mapfile::MapFile, electrodes)
+    nelectrodes = length(mapfile.names)
+    name_map = Dict(mapfile)
+    electrode_map = zeros(Int, nelectrodes)
+    for (i, ele) in enumerate(electrodes)
+        _assign_index!(electrode_map, potential, name_map, ele, i)
+    end
+    return LineMap(electrode_map)
+end
+
+function map_line(lm::LineMap, term; buff=nothing)
+    nelectrodes = length(lm.electrode_map)
+    if buff === nothing
+        buff = Vector{Float64}(undef, nelectrodes)
+    elseif length(buff) != nelectrodes
+        throw(ArgumentError("Buffer size mismatch"))
+    end
+    for i in 1:nelectrodes
+        i2 = lm.electrode_map[i]
+        if i2 > 0
+            buff[i] = term[i2]
+        else
+            buff[i] = 0
+        end
+    end
+    return buff
 end
 
 struct CompensationFile
