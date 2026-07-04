@@ -61,7 +61,7 @@ function CenterTracker(name::AbstractString, region=1)
         Base.require(Base.PkgId(Base.UUID("f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"), "HDF5"))
     end
     _hdf5_init[] = true
-    return invokelatest(_center_tracker_hdf5, path, region)::CenterTracker
+    return invokelatest(_center_tracker_hdf5, path, "$region")::CenterTracker
 end
 
 function Base.get(tracker::CenterTracker, xidx)
