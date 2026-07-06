@@ -11,16 +11,6 @@ struct ElectrodePosition
     up::Bool
 end
 
-function distance(pos::ElectrodePosition, x)
-    if x < pos.left
-        return pos.left - x
-    elseif x > pos.right
-        return x - pos.right
-    else
-        return 0.0
-    end
-end
-
 struct RegionElectrodePositions
     inner::Vector{ElectrodePosition}
     outer::Vector{ElectrodePosition}
@@ -203,21 +193,21 @@ for trap in (_trap_phoenix, _trap_peregrine)
 end
 
 mutable struct ElectrodeSearchState
-    inner_idx1::Int
-    inner_idx2::Int
-    outer_idx1::Int
-    outer_idx2::Int
+    inner_idx1::Int # .right < pos && .left < pos
+    inner_idx2::Int # .right >= pos
+    outer_idx1::Int # .right < pos && .left < pos
+    outer_idx2::Int # .right >= pos
 
     const pos::Float64
     const positions::RegionElectrodePositions
-    const inner_candidates::Vector{ElectrodePosition}
-    const outer_candidates::Vector{ElectrodePosition}
+    const inner_candidates::Vector{Int}
+    const outer_candidates::Vector{Int}
     @inline function ElectrodeSearchState(positions::RegionElectrodePositions, pos)
         inner_idx2 = searchsortedfirst(positions.inner, pos, lt=(x, y)->x.right < y)
         outer_idx2 = searchsortedfirst(positions.outer, pos, lt=(x, y)->x.right < y)
 
         return new(inner_idx2 - 1, inner_idx2, outer_idx2 - 1, outer_idx2,
-                   pos, positions, ElectrodePosition[], ElectrodePosition[])
+                   pos, positions, Int[], Int[])
     end
 end
 
@@ -226,52 +216,54 @@ end
     # First find the closest distance
     dist = Inf
     @inbounds if state.inner_idx2 <= length(positions.inner)
-        dist = min(dist, distance(positions.inner[state.inner_idx2], state.pos))
+        dist = min(dist, max(0.0, positions.inner[state.inner_idx2].left - state.pos))
     end
     @inbounds if state.inner_idx1 > 0
-        dist = min(dist, distance(positions.inner[state.inner_idx1], state.pos))
+        dist = min(dist, state.pos - positions.inner[state.inner_idx1].right)
     end
     @inbounds if state.outer_idx2 <= length(positions.outer)
-        dist = min(dist, distance(positions.outer[state.outer_idx2], state.pos))
+        dist = min(dist, max(0.0, positions.outer[state.outer_idx2].left - state.pos))
     end
     @inbounds if state.outer_idx1 > 0
-        dist = min(dist, distance(positions.outer[state.outer_idx1], state.pos))
+        dist = min(dist, state.pos - positions.outer[state.outer_idx1].right)
     end
     if !isfinite(dist)
         return dist
     end
     empty!(state.inner_candidates)
     empty!(state.outer_candidates)
-    @inbounds while state.inner_idx2 <= length(positions.inner)
+    ninners = length(positions.inner)
+    @inbounds while state.inner_idx2 <= ninners
         epos = positions.inner[state.inner_idx2]
-        if distance(epos, state.pos) > dist
+        if epos.left - state.pos > dist
             break
         end
-        push!(state.inner_candidates, epos)
+        push!(state.inner_candidates, epos.idx)
         state.inner_idx2 += 1
     end
     @inbounds while state.inner_idx1 > 0
         epos = positions.inner[state.inner_idx1]
-        if distance(epos, state.pos) > dist
+        if state.pos - epos.right > dist
             break
         end
-        push!(state.inner_candidates, epos)
+        push!(state.inner_candidates, epos.idx)
         state.inner_idx1 -= 1
     end
-    @inbounds while state.outer_idx2 <= length(positions.outer)
+    nouters = length(positions.outer)
+    @inbounds while state.outer_idx2 <= nouters
         epos = positions.outer[state.outer_idx2]
-        if distance(epos, state.pos) > dist
+        if epos.left - state.pos > dist
             break
         end
-        push!(state.outer_candidates, epos)
+        push!(state.outer_candidates, epos.idx)
         state.outer_idx2 += 1
     end
     @inbounds while state.outer_idx1 > 0
         epos = positions.outer[state.outer_idx1]
-        if distance(epos, state.pos) > dist
+        if state.pos - epos.right > dist
             break
         end
-        push!(state.outer_candidates, epos)
+        push!(state.outer_candidates, epos.idx)
         state.outer_idx1 -= 1
     end
     @assert !isempty(state.inner_candidates) || !isempty(state.outer_candidates)
@@ -290,6 +282,9 @@ and therefore will be treated as the same one.
 function find_electrodes(trap, electrode_index, pos;
                          min_num=0, min_dist=0, region=1, ignore_id=(1,))
     res = Set{Int}()
+    if min_num > 0
+        sizehint!(res, min_num)
+    end
     trap = TrapDesc(trap)
 
     if !isassigned(trap.ele_region_pos, region)
@@ -315,16 +310,16 @@ function find_electrodes(trap, electrode_index, pos;
         end
         dist_satisfied = dist >= min_dist
 
-        for p in search_state.inner_candidates
-            id = electrode_index[@inbounds(trap.ele_names[p.idx])]
+        for pidx in search_state.inner_candidates
+            id = electrode_index[@inbounds(trap.ele_names[pidx])]
             if id in ignore_id
                 continue
             end
             push!(res, id)
         end
 
-        for p in search_state.outer_candidates
-            id = electrode_index[@inbounds(trap.ele_names[p.idx])]
+        for pidx in search_state.outer_candidates
+            id = electrode_index[@inbounds(trap.ele_names[pidx])]
             if id in ignore_id
                 continue
             end
