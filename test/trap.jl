@@ -37,12 +37,12 @@ end
     found20 = false
     found21 = false
     for p in px.ele_region_pos[1].inner
-        if p.name == "Q20"
+        if px.ele_names[p.idx] == "Q20"
             found20 = true
             @test p.left == -35
             @test p.right == 35
             @test p.up
-        elseif p.name == "Q21"
+        elseif px.ele_names[p.idx] == "Q21"
             found21 = true
             @test p.left == -35
             @test p.right == 35
@@ -55,12 +55,12 @@ end
     found54 = false
     found55 = false
     for p in px.ele_region_pos[1].outer
-        if p.name == "Q54"
+        if px.ele_names[p.idx] == "Q54"
             found54 = true
             @test p.left == -70
             @test p.right == 70
             @test p.up
-        elseif p.name == "Q55"
+        elseif px.ele_names[p.idx] == "Q55"
             found55 = true
             @test p.left == -70
             @test p.right == 70

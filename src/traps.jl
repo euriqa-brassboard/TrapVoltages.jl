@@ -5,7 +5,7 @@ module Traps
 export TrapDesc, find_electrodes
 
 struct ElectrodePosition
-    name::String
+    idx::Int
     left::Float64
     right::Float64
     up::Bool
@@ -115,10 +115,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
     # Loading
     for i in 1:nL
         push!(positions.inner,
-              ElectrodePosition("L$(i * 2 - 2)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["L$(i * 2 - 2)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, true))
         push!(positions.inner,
-              ElectrodePosition("L$(i * 2 - 1)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["L$(i * 2 - 1)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, false))
         pos_inner += 1
     end
@@ -127,10 +127,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
     for j in 1:S_rep1
         for i in nS:-1:1
             push!(positions.inner,
-                  ElectrodePosition("S$(i * 2 - 2)", pos_inner * unit_um,
+                  ElectrodePosition(trap.ele_indices["S$(i * 2 - 2)"], pos_inner * unit_um,
                                     (pos_inner + 1) * unit_um, true))
             push!(positions.inner,
-                  ElectrodePosition("S$(i * 2 - 1)", pos_inner * unit_um,
+                  ElectrodePosition(trap.ele_indices["S$(i * 2 - 1)"], pos_inner * unit_um,
                                     (pos_inner + 1) * unit_um, false))
             pos_inner += 1
         end
@@ -138,20 +138,20 @@ for trap in (_trap_phoenix, _trap_peregrine)
 
     # Outer 1
     push!(positions.outer,
-          ElectrodePosition("O0", pos_outer * unit_um,
+          ElectrodePosition(trap.ele_indices["O0"], pos_outer * unit_um,
                             (pos_inner - 0.5) * unit_um, true))
     push!(positions.outer,
-          ElectrodePosition("O1", pos_outer * unit_um,
+          ElectrodePosition(trap.ele_indices["O1"], pos_outer * unit_um,
                             (pos_inner - 0.5) * unit_um, false))
     pos_outer = pos_inner - 0.5
 
     # Quantum inner
     for i in 1:nQ
         push!(positions.inner,
-              ElectrodePosition("Q$(i * 2 - 2)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["Q$(i * 2 - 2)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, true))
         push!(positions.inner,
-              ElectrodePosition("Q$(i * 2 - 1)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["Q$(i * 2 - 1)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, false))
         pos_inner += 1
     end
@@ -160,10 +160,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
     for i in 1:nQ_outer
         i += nQ
         push!(positions.outer,
-              ElectrodePosition("Q$(i * 2 - 2)", pos_outer * unit_um,
+              ElectrodePosition(trap.ele_indices["Q$(i * 2 - 2)"], pos_outer * unit_um,
                                 (pos_outer + 2) * unit_um, true))
         push!(positions.outer,
-              ElectrodePosition("Q$(i * 2 - 1)", pos_outer * unit_um,
+              ElectrodePosition(trap.ele_indices["Q$(i * 2 - 1)"], pos_outer * unit_um,
                                 (pos_outer + 2) * unit_um, false))
         pos_outer += 2
     end
@@ -173,10 +173,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
     for j in 1:S_rep2
         for i in 1:nS
             push!(positions.inner,
-                  ElectrodePosition("S$(i * 2 - 2)", pos_inner * unit_um,
+                  ElectrodePosition(trap.ele_indices["S$(i * 2 - 2)"], pos_inner * unit_um,
                                     (pos_inner + 1) * unit_um, true))
             push!(positions.inner,
-                  ElectrodePosition("S$(i * 2 - 1)", pos_inner * unit_um,
+                  ElectrodePosition(trap.ele_indices["S$(i * 2 - 1)"], pos_inner * unit_um,
                                     (pos_inner + 1) * unit_um, false))
             pos_inner += 1
         end
@@ -185,20 +185,20 @@ for trap in (_trap_phoenix, _trap_peregrine)
     # S0-S3 appeared again at the end (shouldn't really matter......)
     for i in 1:4
         push!(positions.inner,
-              ElectrodePosition("S$(i * 2 - 2)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["S$(i * 2 - 2)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, true))
         push!(positions.inner,
-              ElectrodePosition("S$(i * 2 - 1)", pos_inner * unit_um,
+              ElectrodePosition(trap.ele_indices["S$(i * 2 - 1)"], pos_inner * unit_um,
                                 (pos_inner + 1) * unit_um, false))
         pos_inner += 1
     end
 
     # Outer 2
     push!(positions.outer,
-          ElectrodePosition("O0", pos_outer * unit_um,
+          ElectrodePosition(trap.ele_indices["O0"], pos_outer * unit_um,
                             (pos_inner + end_gnd) * unit_um, true))
     push!(positions.outer,
-          ElectrodePosition("O1", pos_outer * unit_um,
+          ElectrodePosition(trap.ele_indices["O1"], pos_outer * unit_um,
                             (pos_inner + end_gnd) * unit_um, false))
 end
 
@@ -316,7 +316,7 @@ function find_electrodes(trap, electrode_index, pos;
         dist_satisfied = dist >= min_dist
 
         for p in search_state.inner_candidates
-            id = electrode_index[p.name]
+            id = electrode_index[@inbounds(trap.ele_names[p.idx])]
             if id in ignore_id
                 continue
             end
@@ -324,7 +324,7 @@ function find_electrodes(trap, electrode_index, pos;
         end
 
         for p in search_state.outer_candidates
-            id = electrode_index[p.name]
+            id = electrode_index[@inbounds(trap.ele_names[p.idx])]
             if id in ignore_id
                 continue
             end
