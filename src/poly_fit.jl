@@ -88,9 +88,9 @@ function (res::Result{N})(pos::Vararg{Any,N}) where N
     lindices = LinearIndices(sizes)
     cindices = CartesianIndices(sizes)
     v = 0.0
-    for iorder in lindices
+    @inbounds for iorder in lindices
         order = Tuple(cindices[iorder]) .- 1
-        v += res.coefficient[iorder] * prod(pos.^order)
+        v = muladd(res.coefficient[iorder], prod(pos.^order), v)
     end
     return v
 end
@@ -101,7 +101,7 @@ function gradient(res::Result{N}, dim, pos::Vararg{Any,N}) where N
     lindices = LinearIndices(sizes)
     cindices = CartesianIndices(sizes)
     v = 0.0
-    for iorder in lindices
+    @inbounds for iorder in lindices
         # Original polymomial orders along each dimensions
         order = Tuple(cindices[iorder]) .- 1
         factor = order[dim]
@@ -109,7 +109,7 @@ function gradient(res::Result{N}, dim, pos::Vararg{Any,N}) where N
             continue
         end
         term = factor * res.coefficient[iorder]
-        @inbounds for i in 1:N
+        for i in 1:N
             o = i == dim ? order[i] - 1 : order[i]
             term *= pos[i]^o
         end
@@ -141,7 +141,7 @@ function Base.setindex!(res::Result{N}, val, order::Vararg{Integer,N}) where N
     return
 end
 
-shifted_term(max_order, term_order, shift) =
+@inline shifted_term(max_order, term_order, shift) =
     shift^(max_order - term_order) * binomial(max_order, term_order)
 
 function shifted_coefficient(res::Result{N}, shift::NTuple{N},
@@ -150,7 +150,7 @@ function shifted_coefficient(res::Result{N}, shift::NTuple{N},
     sizes = res.orders .+ 1
     lindices = LinearIndices(sizes)
     cindices = CartesianIndices(sizes)
-    for lidx in lindices
+    @inbounds for lidx in lindices
         cidx = cindices[lidx]
         term_order = Tuple(cidx) .- 1
         if !all(term_order .>= order)
@@ -169,7 +169,7 @@ function shift(res::Result{N}, shift::NTuple{N}) where N
     sizes = res.orders .+ 1
     lindices = LinearIndices(sizes)
     cindices = CartesianIndices(sizes)
-    for lidx in lindices
+    @inbounds for lidx in lindices
         cidx = cindices[lidx]
         order = Tuple(cidx) .- 1
         coefficient[lidx] = shifted_coefficient(res, shift, order...)
