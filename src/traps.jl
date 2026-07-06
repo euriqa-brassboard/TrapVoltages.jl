@@ -8,7 +8,6 @@ struct ElectrodePosition
     left::Float64
     right::Float64
     idx::Int32
-    up::Bool
 end
 
 struct RegionElectrodePositions
@@ -106,10 +105,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
     for i in 1:nL
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["L$(i * 2 - 2)"], true))
+                                trap.ele_indices["L$(i * 2 - 2)"]))
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["L$(i * 2 - 1)"], false))
+                                trap.ele_indices["L$(i * 2 - 1)"]))
         pos_inner += 1
     end
 
@@ -118,10 +117,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
         for i in nS:-1:1
             push!(positions.inner,
                   ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                    trap.ele_indices["S$(i * 2 - 2)"], true))
+                                    trap.ele_indices["S$(i * 2 - 2)"]))
             push!(positions.inner,
                   ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                    trap.ele_indices["S$(i * 2 - 1)"], false))
+                                    trap.ele_indices["S$(i * 2 - 1)"]))
             pos_inner += 1
         end
     end
@@ -129,20 +128,20 @@ for trap in (_trap_phoenix, _trap_peregrine)
     # Outer 1
     push!(positions.outer,
           ElectrodePosition(pos_outer * unit_um, (pos_inner - 0.5) * unit_um,
-                            trap.ele_indices["O0"], true))
+                            trap.ele_indices["O0"]))
     push!(positions.outer,
           ElectrodePosition(pos_outer * unit_um, (pos_inner - 0.5) * unit_um,
-                            trap.ele_indices["O1"], false))
+                            trap.ele_indices["O1"]))
     pos_outer = pos_inner - 0.5
 
     # Quantum inner
     for i in 1:nQ
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["Q$(i * 2 - 2)"], true))
+                                trap.ele_indices["Q$(i * 2 - 2)"]))
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["Q$(i * 2 - 1)"], false))
+                                trap.ele_indices["Q$(i * 2 - 1)"]))
         pos_inner += 1
     end
 
@@ -151,10 +150,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
         i += nQ
         push!(positions.outer,
               ElectrodePosition(pos_outer * unit_um, (pos_outer + 2) * unit_um,
-                                trap.ele_indices["Q$(i * 2 - 2)"], true))
+                                trap.ele_indices["Q$(i * 2 - 2)"]))
         push!(positions.outer,
               ElectrodePosition(pos_outer * unit_um, (pos_outer + 2) * unit_um,
-                                trap.ele_indices["Q$(i * 2 - 1)"], false))
+                                trap.ele_indices["Q$(i * 2 - 1)"]))
         pos_outer += 2
     end
     @assert pos_inner - 0.5 == pos_outer
@@ -164,10 +163,10 @@ for trap in (_trap_phoenix, _trap_peregrine)
         for i in 1:nS
             push!(positions.inner,
                   ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                    trap.ele_indices["S$(i * 2 - 2)"], true))
+                                    trap.ele_indices["S$(i * 2 - 2)"]))
             push!(positions.inner,
                   ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                    trap.ele_indices["S$(i * 2 - 1)"], false))
+                                    trap.ele_indices["S$(i * 2 - 1)"]))
             pos_inner += 1
         end
     end
@@ -176,20 +175,20 @@ for trap in (_trap_phoenix, _trap_peregrine)
     for i in 1:4
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["S$(i * 2 - 2)"], true))
+                                trap.ele_indices["S$(i * 2 - 2)"]))
         push!(positions.inner,
               ElectrodePosition(pos_inner * unit_um, (pos_inner + 1) * unit_um,
-                                trap.ele_indices["S$(i * 2 - 1)"], false))
+                                trap.ele_indices["S$(i * 2 - 1)"]))
         pos_inner += 1
     end
 
     # Outer 2
     push!(positions.outer,
           ElectrodePosition(pos_outer * unit_um, (pos_inner + end_gnd) * unit_um,
-                            trap.ele_indices["O0"], true))
+                            trap.ele_indices["O0"]))
     push!(positions.outer,
           ElectrodePosition(pos_outer * unit_um, (pos_inner + end_gnd) * unit_um,
-                            trap.ele_indices["O1"], false))
+                            trap.ele_indices["O1"]))
 end
 
 @inline function _add_electrode!(res, pidx, trap, electrode_index, ignore_id)
@@ -219,6 +218,8 @@ function find_electrodes(trap, electrode_index, pos;
     if !isassigned(trap.ele_region_pos, region)
         throw(ArgumentError("Missing electrode position info for trap $(trap.name) region $(region)"))
     end
+
+    pos = Float64(pos)
 
     positions = trap.ele_region_pos[region]
     # .right >= pos

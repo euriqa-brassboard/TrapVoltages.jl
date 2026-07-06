@@ -41,12 +41,10 @@ end
             found20 = true
             @test p.left == -35
             @test p.right == 35
-            @test p.up
         elseif px.ele_names[p.idx] == "Q21"
             found21 = true
             @test p.left == -35
             @test p.right == 35
-            @test !p.up
         end
     end
     @assert found20
@@ -59,12 +57,10 @@ end
             found54 = true
             @test p.left == -70
             @test p.right == 70
-            @test p.up
         elseif px.ele_names[p.idx] == "Q55"
             found55 = true
             @test p.left == -70
             @test p.right == 70
-            @test !p.up
         end
     end
     @assert found54
