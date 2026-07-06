@@ -192,80 +192,8 @@ for trap in (_trap_phoenix, _trap_peregrine)
                             trap.ele_indices["O1"], false))
 end
 
-mutable struct ElectrodeSearchState
-    inner_idx1::Int # .right < pos && .left < pos
-    inner_idx2::Int # .right >= pos
-    outer_idx1::Int # .right < pos && .left < pos
-    outer_idx2::Int # .right >= pos
-
-    origin_inner_idx1::Int
-    origin_inner_idx2::Int
-    origin_outer_idx1::Int
-    origin_outer_idx2::Int
-
-    const pos::Float64
-    const positions::RegionElectrodePositions
-    @inline function ElectrodeSearchState(positions::RegionElectrodePositions, pos)
-        inner_idx2 = searchsortedfirst(positions.inner, pos, lt=(x, y)->x.right < y)
-        outer_idx2 = searchsortedfirst(positions.outer, pos, lt=(x, y)->x.right < y)
-
-        return new(inner_idx2 - 1, inner_idx2, outer_idx2 - 1, outer_idx2,
-                   inner_idx2 - 1, inner_idx2, outer_idx2 - 1, outer_idx2,
-                   pos, positions)
-    end
-end
-
-@inline function _find_next_distance!(state::ElectrodeSearchState)
-    positions = state.positions
-    # First find the closest distance
-    dist = Inf
-    @inbounds if state.inner_idx2 <= length(positions.inner)
-        dist = min(dist, max(0.0, positions.inner[state.inner_idx2].left - state.pos))
-    end
-    @inbounds if state.inner_idx1 > 0
-        dist = min(dist, state.pos - positions.inner[state.inner_idx1].right)
-    end
-    @inbounds if state.outer_idx2 <= length(positions.outer)
-        dist = min(dist, max(0.0, positions.outer[state.outer_idx2].left - state.pos))
-    end
-    @inbounds if state.outer_idx1 > 0
-        dist = min(dist, state.pos - positions.outer[state.outer_idx1].right)
-    end
-    if !isfinite(dist)
-        return dist
-    end
-    ninners = length(positions.inner)
-    @inbounds while state.inner_idx2 <= ninners
-        if positions.inner[state.inner_idx2].left - state.pos > dist
-            break
-        end
-        state.inner_idx2 += 1
-    end
-    @inbounds while state.inner_idx1 > 0
-        if state.pos - positions.inner[state.inner_idx1].right > dist
-            break
-        end
-        state.inner_idx1 -= 1
-    end
-    nouters = length(positions.outer)
-    @inbounds while state.outer_idx2 <= nouters
-        if positions.outer[state.outer_idx2].left - state.pos > dist
-            break
-        end
-        state.outer_idx2 += 1
-    end
-    @inbounds while state.outer_idx1 > 0
-        if state.pos - positions.outer[state.outer_idx1].right > dist
-            break
-        end
-        state.outer_idx1 -= 1
-    end
-    return dist
-end
-
-@inline function _add_electrode!(res, i, trap, electrode_index, ignore_id, candidates)
-    name = @inbounds trap.ele_names[candidates[i].idx]
-    id = electrode_index[name]
+@inline function _add_electrode!(res, pidx, trap, electrode_index, ignore_id)
+    id = electrode_index[@inbounds trap.ele_names[pidx]]
     if !(id in ignore_id)
         push!(res, id)
     end
@@ -293,48 +221,83 @@ function find_electrodes(trap, electrode_index, pos;
     end
 
     positions = trap.ele_region_pos[region]
-    search_state = ElectrodeSearchState(positions, pos)
+    # .right >= pos
+    inner_idx2 = searchsortedfirst(positions.inner, pos, lt=(x, y)->x.right < y)
+    outer_idx2 = searchsortedfirst(positions.outer, pos, lt=(x, y)->x.right < y)
+    # .right < pos && .left < pos
+    inner_idx1 = inner_idx2 - 1
+    outer_idx1 = outer_idx2 - 1
+
     dist_satisfied = false
     num_satisfied = false
 
-    while true
+    inners = positions.inner
+    outers = positions.outer
+    ninners = length(inners)
+    nouters = length(outers)
+
+    @inbounds while true
         num_satisfied = min_num <= length(res)
         if num_satisfied && dist_satisfied
             return res
         end
-
-        dist = _find_next_distance!(search_state)
-        if !isfinite(dist)
+        dist = Inf
+        finite_dist = false
+        if inner_idx2 <= ninners
+            dist = inners[inner_idx2].left - pos
+            finite_dist = true
+        end
+        if inner_idx1 > 0
+            dist = min(dist, pos - inners[inner_idx1].right)
+            finite_dist = true
+        end
+        if outer_idx2 <= nouters
+            dist = min(dist, outers[outer_idx2].left - pos)
+            finite_dist = true
+        end
+        if outer_idx1 > 0
+            dist = min(dist, pos - outers[outer_idx1].right)
+            finite_dist = true
+        end
+        if !finite_dist
             if num_satisfied
                 return res
             end
             error("Unable to find enough terms")
         end
+        dist = max(0.0, dist)
         dist_satisfied = dist >= min_dist
-
-        if search_state.origin_inner_idx1 != search_state.inner_idx1
-            for i in search_state.inner_idx1 + 1:search_state.origin_inner_idx1
-                _add_electrode!(res, i, trap, electrode_index, ignore_id, positions.inner)
+        while inner_idx2 <= ninners
+            epos = inners[inner_idx2]
+            if epos.left - pos > dist
+                break
             end
-            search_state.origin_inner_idx1 = search_state.inner_idx1
+            _add_electrode!(res, epos.idx, trap, electrode_index, ignore_id)
+            inner_idx2 += 1
         end
-        if search_state.origin_inner_idx2 != search_state.inner_idx2
-            for i in search_state.origin_inner_idx2:search_state.inner_idx2 - 1
-                _add_electrode!(res, i, trap, electrode_index, ignore_id, positions.inner)
+        while inner_idx1 > 0
+            epos = inners[inner_idx1]
+            if pos - epos.right > dist
+                break
             end
-            search_state.origin_inner_idx2 = search_state.inner_idx2
+            _add_electrode!(res, epos.idx, trap, electrode_index, ignore_id)
+            inner_idx1 -= 1
         end
-        if search_state.origin_outer_idx1 != search_state.outer_idx1
-            for i in search_state.outer_idx1 + 1:search_state.origin_outer_idx1
-                _add_electrode!(res, i, trap, electrode_index, ignore_id, positions.outer)
+        while outer_idx2 <= nouters
+            epos = outers[outer_idx2]
+            if epos.left - pos > dist
+                break
             end
-            search_state.origin_outer_idx1 = search_state.outer_idx1
+            _add_electrode!(res, epos.idx, trap, electrode_index, ignore_id)
+            outer_idx2 += 1
         end
-        if search_state.origin_outer_idx2 != search_state.outer_idx2
-            for i in search_state.origin_outer_idx2:search_state.outer_idx2 - 1
-                _add_electrode!(res, i, trap, electrode_index, ignore_id, positions.outer)
+        while outer_idx1 > 0
+            epos = outers[outer_idx1]
+            if pos - epos.right > dist
+                break
             end
-            search_state.origin_outer_idx2 = search_state.outer_idx2
+            _add_electrode!(res, epos.idx, trap, electrode_index, ignore_id)
+            outer_idx1 -= 1
         end
     end
 end
