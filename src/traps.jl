@@ -212,7 +212,7 @@ mutable struct ElectrodeSearchState
     const positions::RegionElectrodePositions
     const inner_candidates::Vector{ElectrodePosition}
     const outer_candidates::Vector{ElectrodePosition}
-    function ElectrodeSearchState(positions::RegionElectrodePositions, pos)
+    @inline function ElectrodeSearchState(positions::RegionElectrodePositions, pos)
         inner_idx2 = searchsortedfirst(positions.inner, pos, lt=(x, y)->x.right < y)
         outer_idx2 = searchsortedfirst(positions.outer, pos, lt=(x, y)->x.right < y)
 
@@ -225,16 +225,16 @@ end
     positions = state.positions
     # First find the closest distance
     dist = Inf
-    if state.inner_idx2 <= length(positions.inner)
+    @inbounds if state.inner_idx2 <= length(positions.inner)
         dist = min(dist, distance(positions.inner[state.inner_idx2], state.pos))
     end
-    if state.inner_idx1 > 0
+    @inbounds if state.inner_idx1 > 0
         dist = min(dist, distance(positions.inner[state.inner_idx1], state.pos))
     end
-    if state.outer_idx2 <= length(positions.outer)
+    @inbounds if state.outer_idx2 <= length(positions.outer)
         dist = min(dist, distance(positions.outer[state.outer_idx2], state.pos))
     end
-    if state.outer_idx1 > 0
+    @inbounds if state.outer_idx1 > 0
         dist = min(dist, distance(positions.outer[state.outer_idx1], state.pos))
     end
     if !isfinite(dist)
@@ -242,7 +242,7 @@ end
     end
     empty!(state.inner_candidates)
     empty!(state.outer_candidates)
-    while state.inner_idx2 <= length(positions.inner)
+    @inbounds while state.inner_idx2 <= length(positions.inner)
         epos = positions.inner[state.inner_idx2]
         if distance(epos, state.pos) > dist
             break
@@ -250,7 +250,7 @@ end
         push!(state.inner_candidates, epos)
         state.inner_idx2 += 1
     end
-    while state.inner_idx1 > 0
+    @inbounds while state.inner_idx1 > 0
         epos = positions.inner[state.inner_idx1]
         if distance(epos, state.pos) > dist
             break
@@ -258,7 +258,7 @@ end
         push!(state.inner_candidates, epos)
         state.inner_idx1 -= 1
     end
-    while state.outer_idx2 <= length(positions.outer)
+    @inbounds while state.outer_idx2 <= length(positions.outer)
         epos = positions.outer[state.outer_idx2]
         if distance(epos, state.pos) > dist
             break
@@ -266,7 +266,7 @@ end
         push!(state.outer_candidates, epos)
         state.outer_idx2 += 1
     end
-    while state.outer_idx1 > 0
+    @inbounds while state.outer_idx1 > 0
         epos = positions.outer[state.outer_idx1]
         if distance(epos, state.pos) > dist
             break
